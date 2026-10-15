@@ -1,0 +1,12 @@
+[
+  {
+    "date": "2026-10-15",
+    "project": "money-manager (Arus)",
+    "genre": "modern-minimal",
+    "theme": "Cobalt (catalog)",
+    "macrostructure": "Mockup split hero + spec sheet + step sequence + dark band",
+    "nav": "N13 inline cmdk pill (landing); side rail + bottom tab bar (app)",
+    "footer": "Ft4 dense typographic",
+    "fonts": ["Space Grotesk", "Geist", "JetBrains Mono"]
+  }
+]

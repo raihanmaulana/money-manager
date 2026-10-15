@@ -1,0 +1,115 @@
+import { cookies } from 'next/headers'
+import { redirect } from 'next/navigation'
+import { cache } from 'react'
+import { isYm, pocketBalances, ymOfDate } from './calc.ts'
+import { queryPockets } from './pockets.ts'
+import { ensureRecurring } from './recurring.ts'
+import { supabaseServer } from './supabase/server.ts'
+import * as demo from './demo.ts'
+import type { Bill, BillMonth, BillPayment, BudgetItem, Expense, Goal, GoalDeposit, IncomeItem, MonthData, PocketAdjustment, PocketView, Recurring, Transfer } from './types.ts'
+
+export const DEMO = process.env.DEMO_MODE === '1'
+
+export type Ctx = {
+  userId: string
+  email: string
+  nama: string
+  ym: string
+  today: { ym: string; day: number; iso: string }
+}
+
+const num = (v: unknown) => Number(v ?? 0)
+
+export const getCtx = cache(async (): Promise<Ctx> => {
+  const store = await cookies()
+  const today = ymOfDate(new Date())
+  const cm = store.get('ym')?.value
+  const ym = cm && isYm(cm) ? cm : today.ym
+
+  if (DEMO) return { userId: 'demo', email: 'demo@example.com', nama: 'Raihan', ym, today }
+
+  const sb = await supabaseServer()
+  const { data: { user } } = await sb.auth.getUser()
+  if (!user) redirect('/masuk')
+
+  // pastikan profil ada
+  const { data: prof } = await sb.from('profiles').select('id, nama').eq('id', user.id).maybeSingle()
+  let nama = (prof?.nama as string | undefined) ?? ''
+  if (!prof) {
+    nama = (user.user_metadata?.nama as string | undefined) || (user.email ?? '').split('@')[0]
+    await sb.from('profiles').upsert({ id: user.id, nama })
+  }
+  return { userId: user.id, email: user.email ?? '', nama: nama || 'Saya', ym, today }
+})
+
+export async function loadMonth(ctx: Ctx): Promise<MonthData> {
+  const { ym } = ctx
+  if (DEMO) {
+    return {
+      ym,
+      income: ym >= '2026-10' ? demo.demoIncome(ym) : [],
+      budget: ym >= '2026-10' ? demo.demoBudget(ym) : [],
+      expenses: ym === '2026-10' ? demo.demoExpenses(ym) : [],
+      bills: demo.demoBills,
+      billMonths: demo.demoBillMonths,
+      payments: demo.demoPayments.filter((p) => p.ym === ym),
+    }
+  }
+  const sb = await supabaseServer()
+  const o = ctx.userId
+  await ensureRecurring(sb, o, ym, ctx.today.iso, ctx.email)
+  const [inc, bud, exp, bills, bms, pays] = await Promise.all([
+    sb.from('income_items').select('*').eq('owner_id', o).eq('ym', ym).order('sort').order('label'),
+    sb.from('budget_items').select('*').eq('owner_id', o).eq('ym', ym).order('sort').order('label'),
+    sb.from('expenses').select('*').eq('owner_id', o).eq('ym', ym).order('spent_on', { ascending: false }).order('created_at', { ascending: false }),
+    sb.from('bills').select('*').eq('owner_id', o).order('due_day'),
+    sb.from('bill_months').select('*').eq('owner_id', o).eq('ym', ym),
+    sb.from('bill_payments').select('*').eq('owner_id', o).eq('ym', ym).order('paid_on').order('created_at'),
+  ])
+  return {
+    ym,
+    income: (inc.data ?? []).map((r) => ({ ...r, amount: num(r.amount) })) as IncomeItem[],
+    budget: (bud.data ?? []).map((r) => ({ ...r, amount: num(r.amount) })) as BudgetItem[],
+    expenses: (exp.data ?? []).map((r) => ({ ...r, amount: num(r.amount) })) as Expense[],
+    bills: (bills.data ?? []).map((r) => ({ ...r, amount: num(r.amount), min_payment: num(r.min_payment ?? 0) })) as Bill[],
+    billMonths: (bms.data ?? []).map((r) => ({ ...r, amount_override: r.amount_override == null ? null : num(r.amount_override), paid_amount: num(r.paid_amount ?? 0) })) as BillMonth[],
+    payments: (pays.data ?? []).map((r) => ({ ...r, amount: num(r.amount) })) as BillPayment[],
+  }
+}
+
+export async function loadGoals(ctx: Ctx): Promise<{ goals: Goal[]; deposits: GoalDeposit[] }> {
+  if (DEMO) return { goals: demo.demoGoals, deposits: demo.demoDeposits }
+  const sb = await supabaseServer()
+  const [g, d] = await Promise.all([
+    sb.from('goals').select('*').eq('owner_id', ctx.userId).order('created_at'),
+    sb.from('goal_deposits').select('*').eq('owner_id', ctx.userId).order('created_at', { ascending: false }),
+  ])
+  return {
+    goals: (g.data ?? []).map((r) => ({ ...r, target: num(r.target) })) as Goal[],
+    deposits: (d.data ?? []).map((r) => ({ ...r, amount: num(r.amount) })) as GoalDeposit[],
+  }
+}
+
+/** Sumber dana beserta saldo (dihitung dari semua catatan yang memilih sumber itu) dan riwayat pindah dana. */
+export async function loadPockets(ctx: Ctx): Promise<{ pockets: PocketView[]; transfers: Transfer[]; adjustments: PocketAdjustment[] }> {
+  if (DEMO) {
+    const transfers = demo.demoTransfers
+    return { pockets: pocketBalances(demo.demoPockets, demo.demoIncome('2026-10'), demo.demoExpenses('2026-10'), demo.demoDeposits, transfers, ctx.today, demo.demoPayments, []), transfers, adjustments: [] }
+  }
+  return queryPockets(await supabaseServer(), ctx.userId, ctx.today)
+}
+
+/** Daftar pengeluaran berulang . */
+export async function loadRecurring(ctx: Ctx): Promise<Recurring[]> {
+  if (DEMO) return demo.demoRecurring
+  const sb = await supabaseServer()
+  const { data } = await sb.from('recurring_expenses').select('*').eq('owner_id', ctx.userId).order('day').order('created_at')
+  return (data ?? []).map((r) => ({ ...r, amount: num(r.amount), skipped_ym: r.skipped_ym ?? [] })) as Recurring[]
+}
+
+export async function prevMonthHasData(ctx: Ctx, prev: string): Promise<boolean> {
+  if (DEMO) return prev >= '2026-10'
+  const sb = await supabaseServer()
+  const { count } = await sb.from('income_items').select('id', { count: 'exact', head: true }).eq('owner_id', ctx.userId).eq('ym', prev)
+  return !!count
+}
