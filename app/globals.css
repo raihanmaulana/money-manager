@@ -267,7 +267,7 @@ ul.rows { margin: 0; padding: 0; }
 /* ---------- loading: batang tipis di atas layar ---------- */
 .busy-bar { position: fixed; z-index: var(--z-toast); top: 0; left: 0; right: 0; height: 2px; background: transparent; pointer-events: none; }
 .busy-bar i { display: block; height: 100%; width: 100%; background: var(--color-accent); transform-origin: left; transition: transform 160ms linear; }
-.page-loading { display: grid; gap: var(--space-4); }
+.page-loading { display: grid; place-items: center; min-height: 70dvh; }
 .skel { background: var(--color-paper-3); border-radius: var(--radius-card); animation: pulse 1.4s var(--ease-in-out) infinite; }
 @keyframes pulse { 50% { opacity: .55; } }
 
@@ -581,7 +581,7 @@ body { background: var(--color-paper-2); }
 /* ---------- tampilan loading ---------- */
 .busy { position: fixed; inset: 0; z-index: var(--z-modal); display: grid; place-items: center; padding: var(--space-4); background: var(--color-scrim); animation: fade var(--dur-fast) var(--ease-out) both; }
 .load-card { width: min(92vw, 380px); display: grid; gap: var(--space-5); padding: var(--space-5) var(--space-6); background: var(--color-surface); border: var(--rule-w) solid var(--page-mid); border-radius: var(--radius-card); box-shadow: var(--shadow-card); animation: pop var(--dur-med) var(--ease-out) both; }
-.page-loading .load-card { width: 100%; max-width: 440px; animation: none; }
+.page-loading .load-card { width: min(100%, 380px); }
 .load-head { display: flex; align-items: center; gap: var(--space-4); }
 .load-mark { width: 48px; height: 48px; flex: none; overflow: visible; }
 .lm-bg { fill: var(--page-soft); stroke: var(--page-mid); stroke-width: 0.6; }
