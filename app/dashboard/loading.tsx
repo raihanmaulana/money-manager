@@ -1,9 +1,13 @@
+'use client'
+import { LoadingCard, useCreepingProgress } from '@/components/LoadingCard'
+
 export default function Loading() {
+  const [pct] = useCreepingProgress(true)
   return (
-    <div className="page-loading" role="status" aria-live="polite" aria-label="Memuat halaman">
-      <div className="skel" style={{ height: '2.4rem', width: 'min(100%, 18rem)' }} />
-      <div className="skel" style={{ height: '11rem' }} />
-      <div className="skel" style={{ height: '14rem' }} />
+    <div className="page-loading" aria-label="Memuat halaman">
+      <LoadingCard pct={pct} title="Memuat halaman" hint="Mengambil data terbaru Anda." />
+      <div className="skel" style={{ height: '5.5rem' }} />
+      <div className="skel" style={{ height: '12rem' }} />
     </div>
   )
 }

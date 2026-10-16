@@ -577,3 +577,33 @@ body { background: var(--color-paper-2); }
   .tile { padding: var(--space-5); }
   .bento { gap: var(--space-4); }
 }
+
+/* ---------- tampilan loading ---------- */
+.busy { position: fixed; inset: 0; z-index: var(--z-modal); display: grid; place-items: center; padding: var(--space-4); background: var(--color-scrim); animation: fade var(--dur-fast) var(--ease-out) both; }
+.load-card { width: min(92vw, 380px); display: grid; gap: var(--space-5); padding: var(--space-5) var(--space-6); background: var(--color-surface); border: var(--rule-w) solid var(--page-mid); border-radius: var(--radius-card); box-shadow: var(--shadow-card); animation: pop var(--dur-med) var(--ease-out) both; }
+.page-loading .load-card { width: 100%; max-width: 440px; animation: none; }
+.load-head { display: flex; align-items: center; gap: var(--space-4); }
+.load-mark { width: 48px; height: 48px; flex: none; overflow: visible; }
+.lm-bg { fill: var(--page-soft); stroke: var(--page-mid); stroke-width: 0.6; }
+.lm-line { fill: none; stroke: var(--page-accent); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 100; stroke-dashoffset: 100; animation: lm-draw 1.6s var(--ease-in-out) infinite; }
+.lm-dot { fill: var(--page-accent); transform-box: fill-box; transform-origin: center; animation: lm-pulse 1.6s var(--ease-in-out) infinite; }
+@keyframes lm-draw { 0% { stroke-dashoffset: 100; } 55%, 80% { stroke-dashoffset: 0; } 100% { stroke-dashoffset: -100; } }
+@keyframes lm-pulse { 0%, 45% { transform: scale(0.4); opacity: 0.3; } 65% { transform: scale(1.25); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
+.load-text { display: grid; gap: 2px; min-width: 0; flex: 1; }
+.load-text b { font-family: var(--font-display); font-weight: 600; font-size: var(--text-md); }
+.load-text span { font-size: var(--text-sm); color: var(--color-muted); }
+.load-pct { font-size: var(--text-lg); font-weight: 500; color: var(--page-ink); min-width: 3.2ch; text-align: right; }
+.load-track { position: relative; height: 8px; border-radius: 99px; background: var(--page-mid); overflow: hidden; }
+.load-track i { position: absolute; inset: 0; border-radius: 99px; background: var(--page-accent); transform-origin: left; transition: transform 160ms linear; overflow: hidden; }
+.load-track i::after { content: ''; position: absolute; inset: 0; width: 40%; background: linear-gradient(90deg, transparent, var(--color-accent-ink), transparent); opacity: 0.45; animation: load-sheen 1.3s var(--ease-in-out) infinite; }
+@keyframes load-sheen { from { transform: translateX(-100%); } to { transform: translateX(260%); } }
+@media (prefers-reduced-motion: reduce) {
+  .lm-line { stroke-dashoffset: 0; animation: none; }
+  .lm-dot { animation: none; }
+  .load-track i::after { animation: none; display: none; }
+}
+@media print { .busy { display: none !important; } }
+
+/* baris sempit: nama boleh turun ke baris sendiri, tidak terpotong */
+.rows > li { flex-wrap: wrap; row-gap: var(--space-2); }
+.rows > li > .grow { flex: 1 1 11rem; }

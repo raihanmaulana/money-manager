@@ -41,7 +41,7 @@ export default async function Anggaran() {
           title={`Reset ${ymLabel(ctx.ym)}?`}
           message={`Semua data ${ymLabel(ctx.ym)} dihapus sampai kosong: pemasukan, anggaran, catatan pengeluaran, setoran tabungan, status tagihan, dan pindah dana. Tagihan yang dibuat di bulan sebelumnya tetap ada. Tidak bisa dibatalkan.`} />} />
       <div className="bento">
-        <section className="tile s6" style={{ ['--i' as string]: 0 }} aria-labelledby="h-masuk">
+        <section className="tile s7" style={{ ['--i' as string]: 0 }} aria-labelledby="h-masuk">
           <div className="tile-head"><TileTitle id="h-masuk" icon={Banknote}>Pemasukan</TileTitle><span className="tile-note">bersih {rp(s.bersih)}</span></div>
           <ul className="rows">
             {data.income.map((i) => (
@@ -66,7 +66,7 @@ export default async function Anggaran() {
           )}
         </section>
 
-        <section className="tile blush s6" style={{ ['--i' as string]: 1 }} aria-labelledby="h-hasil">
+        <section className="tile blush s5" style={{ ['--i' as string]: 1 }} aria-labelledby="h-hasil">
           <div className="tile-head"><TileTitle id="h-hasil" icon={Calculator}>Hasil akhir bulan ini</TileTitle></div>
           <ul className="rows">
             <li><span className="grow name">Pemasukan bersih</span><span className="amt">{rp(s.bersih)}</span></li>

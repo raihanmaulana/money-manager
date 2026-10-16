@@ -1,4 +1,7 @@
 'use client'
+import { usePathname } from 'next/navigation'
+import { LoadingCard } from './LoadingCard'
+import { hueFor } from './nav-items'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from 'react'
 
 type Ctl = { inc: () => void; dec: () => void }
@@ -11,6 +14,7 @@ export function BusyProvider({ children }: { children: ReactNode }) {
   const [count, setCount] = useState(0)
   const [visible, setVisible] = useState(false)
   const [pct, setPct] = useState(0)
+  const path = usePathname()
   const shownAt = useRef(0)
   const inc = useCallback(() => setCount((c) => c + 1), [])
   const dec = useCallback(() => setCount((c) => Math.max(0, c - 1)), [])
@@ -39,9 +43,12 @@ export function BusyProvider({ children }: { children: ReactNode }) {
     <Busy.Provider value={ctl}>
       {children}
       {visible ? (
-        <div className="busy-bar" role="progressbar" aria-label="Memuat" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(pct)}>
-          <i style={{ transform: `scaleX(${pct / 100})` }} />
-        </div>
+        <>
+          <div className="busy-bar" aria-hidden="true"><i style={{ transform: `scaleX(${pct / 100})` }} /></div>
+          <div className="busy page-scope" style={{ ['--pg' as string]: hueFor(path) } as React.CSSProperties}>
+            <LoadingCard pct={pct} hint="Jangan tutup halaman ini." />
+          </div>
+        </>
       ) : null}
     </Busy.Provider>
   )
