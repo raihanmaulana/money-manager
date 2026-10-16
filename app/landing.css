@@ -12,7 +12,7 @@
 .lp-link:hover { color: var(--color-ink); }
 
 /* hero */
-.lp-hero { padding-block: var(--space-16) var(--space-12); }
+.lp-hero { padding-block: var(--space-16) var(--space-12); background: linear-gradient(180deg, var(--color-accent-soft), var(--color-paper) 85%); }
 .lp-hero-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr); gap: var(--space-12); align-items: center; }
 .lp-hero-copy { display: grid; gap: var(--space-5); justify-items: start; }
 .lp-hero h1 { font-size: var(--text-hero); letter-spacing: -0.04em; line-height: 1.02; max-width: 14ch; }

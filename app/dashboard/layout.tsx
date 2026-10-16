@@ -4,13 +4,14 @@ import { LogoutButton } from '@/components/LogoutButton'
 import { RailNav, TabBar } from '@/components/Nav'
 import { CommandPaletteTrigger } from '@/components/CommandPalette'
 import { Mark } from '@/components/Mark'
+import { PageScope } from '@/components/PageScope'
 
 export const dynamic = 'force-dynamic'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const ctx = await getCtx()
   return (
-    <div className="shell">
+    <PageScope className="shell">
       <aside className="rail">
         <Link href="/dashboard" className="brand" aria-label="Arus, ke ringkasan">
           <Mark />
@@ -33,6 +34,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </main>
       </div>
       <TabBar />
-    </div>
+    </PageScope>
   )
 }

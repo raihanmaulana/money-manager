@@ -12,8 +12,8 @@ export function RailNav() {
     <div>
       <p className="label rail-label" id="nav-label">Menu</p>
       <nav className="nav" aria-labelledby="nav-label">
-        {NAV.map(({ href, label, Icon }) => (
-          <Link key={href} href={href} aria-current={isActive(path, href) ? 'page' : undefined}>
+        {NAV.map(({ href, label, Icon, hue }) => (
+          <Link key={href} href={href} style={{ ['--h' as string]: hue }} aria-current={isActive(path, href) ? 'page' : undefined}>
             <Icon aria-hidden strokeWidth={2} />
             {label}
           </Link>
@@ -28,8 +28,8 @@ export function TabBar() {
   const main = NAV.slice(0, 4)
   return (
     <nav className="tabbar" aria-label="Menu utama">
-      {main.map(({ href, label, Icon }) => (
-        <Link key={href} href={href} aria-current={isActive(path, href) ? 'page' : undefined}>
+      {main.map(({ href, label, Icon, hue }) => (
+        <Link key={href} href={href} style={{ ['--h' as string]: hue }} aria-current={isActive(path, href) ? 'page' : undefined}>
           <Icon aria-hidden strokeWidth={2} />
           {label}
         </Link>

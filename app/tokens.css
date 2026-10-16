@@ -81,9 +81,10 @@
   --page-gutter: clamp(1rem, 4vw, 2rem);
 
   /* shape */
-  --radius-card: 6px;
-  --radius-field: 6px;
-  --radius-pill: 6px;
+  --radius-card: 14px;
+  --radius-field: 10px;
+  --radius-pill: 10px;
+  --radius-sm: 8px;
   --rule-w: 1px;
 
   /* motion */
@@ -100,4 +101,28 @@
   --z-dropdown: 100;
   --z-modal: 110;
   --z-toast: 200;
+
+  --shadow-card: 0 10px 24px -14px oklch(24% 0.02 258 / 0.16);
+}
+
+/* Identitas warna per menu: --pg (hue) diisi PageScope. Semua komponen yang memakai --color-accent ikut berganti. */
+.page-scope {
+  --pg: 256;
+  --page-accent: oklch(52% 0.17 var(--pg));
+  --page-accent-2: oklch(46% 0.17 var(--pg));
+  --page-ink: oklch(36% 0.11 var(--pg));
+  --page-soft: oklch(96.4% 0.03 var(--pg));
+  --page-mid: oklch(89% 0.06 var(--pg));
+  --page-tint: oklch(98.2% 0.014 var(--pg));
+  --color-accent: var(--page-accent);
+  --color-accent-2: var(--page-accent-2);
+  --color-accent-deep: var(--page-ink);
+  --color-accent-soft: var(--page-soft);
+  --color-focus: var(--page-accent);
+}
+/* Ikon dan penanda menu memakai hue masing-masing (--h dari item) */
+.nav a, .tabbar a {
+  --item-icon: oklch(55% 0.14 var(--h, 256));
+  --item-soft: oklch(96% 0.035 var(--h, 256));
+  --item-ink: oklch(34% 0.1 var(--h, 256));
 }
