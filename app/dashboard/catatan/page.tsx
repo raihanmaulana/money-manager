@@ -9,6 +9,7 @@ import { PageHead } from '@/components/PageHead'
 import { EmptyMonth } from '@/components/EmptyMonth'
 import { DatePicker } from '@/components/DatePicker'
 import { ExpenseList } from '@/components/ExpenseList'
+import { ShowMore, Fold } from '@/components/ShowMore'
 import { PocketSelect } from '@/components/PocketSelect'
 import { InlineField, MoneyInput, QuickForm, Submit } from '@/components/Fields'
 
@@ -35,7 +36,7 @@ export default async function Catatan() {
           <ExpenseList expenses={data.expenses} cats={pos} pockets={pockets} days={daysInMonth(ctx.ym)} />
         </section>
 
-        <div className="stack col5">
+        <div className="stack col5 first-m">
           {(
             <section className="tile" style={{ ['--i' as string]: 1 }} aria-labelledby="h-baru">
               <div className="tile-head"><TileTitle id="h-baru" icon={Plus}>Catat baru</TileTitle></div>
@@ -61,7 +62,7 @@ export default async function Catatan() {
             <div className="tile-head"><TileTitle id="h-ulang" icon={Repeat}>Pengeluaran berulang</TileTitle><span className="tile-note">{recurring.length} aktif</span></div>
             <p className="hint" style={{ marginBottom: 'var(--space-3)' }}>Untuk uang kos, langganan, dll. Otomatis jadi catatan tiap bulan saat tanggalnya tiba.</p>
             {recurring.length ? (
-              <ul className="rows" style={{ marginBottom: 'var(--space-4)' }}>
+              <ShowMore limit={2} noun="berulang" className="rows">
                 {recurring.map((r) => (
                   <li key={r.id} className="row wrap">
                     <span className="grow" style={{ minWidth: '9rem' }}>
@@ -72,9 +73,9 @@ export default async function Catatan() {
                     {<ConfirmButton action={deleteRecurring} args={[r.id]} trigger="Hapus" title={`Hentikan "${r.note}"?`} confirmText="Ya, hentikan" message="Tidak dibuat lagi untuk bulan berikutnya. Catatan yang sudah terbuat tetap ada." />}
                   </li>
                 ))}
-              </ul>
+              </ShowMore>
             ) : null}
-            {(
+            <Fold summary={<><Plus aria-hidden size={16} /> Tambah pengeluaran berulang</>}>
               <QuickForm action={addRecurring} className="stack">
                 <div className="form-grid">
                   <label className="field full"><span>Nama</span><input className="input" name="note" required maxLength={80} placeholder="mis. Uang kos" /></label>
@@ -92,12 +93,12 @@ export default async function Catatan() {
                 </div>
                 <Submit className="btn ghost"><Plus aria-hidden /> Tambah berulang</Submit>
               </QuickForm>
-            )}
+            </Fold>
           </section>
 
           <section className="tile" style={{ ['--i' as string]: 3 }} aria-labelledby="h-pos">
             <div className="tile-head"><TileTitle id="h-pos" icon={Target}>Per kategori</TileTitle></div>
-            <ul className="rows">
+            <ShowMore limit={3} noun="kategori" className="rows">
               {pos.map((p) => {
                 const used = s.spentByItem[p.id] ?? 0
                 const o = used > p.amount
@@ -112,14 +113,15 @@ export default async function Catatan() {
                   </li>
                 )
               })}
-              {noPos > 0 ? <li><span className="grow name">Tanpa kategori</span><span className="amt">{rp(noPos)}</span></li> : null}
-            </ul>
+              {noPos > 0 ? <li key="nopos"><span className="grow name">Tanpa kategori</span><span className="amt">{rp(noPos)}</span></li> : null}
+            </ShowMore>
           </section>
         </div>
         <section className="tile s12 split" style={{ ['--i' as string]: 4 }} aria-labelledby="h-split">
           <div className="tile-head"><TileTitle id="h-split" icon={Users}>Split bill</TileTitle><span className="tile-note">{splits.length} orang · {rp(splits.reduce((t, x) => t + x.amount, 0))}</span></div>
           <p className="hint" style={{ marginBottom: 'var(--space-3)' }}>Patungan dengan teman? Catat nama dan nominal yang harus mereka bayar. Daftar ini terpisah dari pengeluaranmu.</p>
           <div className="split-grid">
+            <Fold summary={<><Plus aria-hidden size={16} /> Tambah split bill</>} defaultOpen={!splits.length}>
             <QuickForm action={addSplit} className="stack">
               <div className="form-grid">
                 <label className="field"><span>Nama</span><input className="input" name="name" required maxLength={60} placeholder="mis. Dimas" /></label>
@@ -129,8 +131,9 @@ export default async function Catatan() {
               </div>
               <Submit className="btn full"><Plus aria-hidden /> Tambah split bill</Submit>
             </QuickForm>
+            </Fold>
             {splits.length ? (
-              <ul className="rows">
+              <ShowMore limit={4} noun="orang" className="rows">
                 {splits.map((x) => (
                   <li key={x.id} className="row wrap">
                     <span className="grow" style={{ minWidth: '8rem' }}>
@@ -141,7 +144,7 @@ export default async function Catatan() {
                     <ConfirmButton action={deleteSplit} args={[x.id]} trigger="Hapus" title={`Hapus split bill ${x.name}?`} confirmText="Ya, hapus" message="Entri ini dihapus dari daftar split bill." />
                   </li>
                 ))}
-              </ul>
+              </ShowMore>
             ) : <p className="hint">Belum ada split bill bulan ini.</p>}
           </div>
         </section>

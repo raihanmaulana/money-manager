@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Filter, FilterX } from 'lucide-react'
+import { ChevronDown, Filter, FilterX } from 'lucide-react'
 import { ThemedSelect } from './ThemedSelect'
 import { ActionButton } from './Fields'
 import { ExpenseEditor } from './ExpenseEditor'
@@ -22,6 +22,7 @@ export function ExpenseList({ expenses, cats, pockets, days }: {
   const [cat, setCat] = useState('')
   const [pocket, setPocket] = useState('')
   const [open, setOpen] = useState(false)
+  const [dayLimit, setDayLimit] = useState(4)
   const opener = useRef<HTMLButtonElement>(null)
   const card = useRef<HTMLDivElement>(null)
 
@@ -69,7 +70,8 @@ export function ExpenseList({ expenses, cats, pockets, days }: {
     return () => { document.removeEventListener('keydown', onKey); document.body.style.overflow = prev }
   }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const reset = () => { setDayR(null); setAmtR(null); setCat(''); setPocket('') }
+  useEffect(() => { setDayLimit(4) }, [dayR, amtR, cat, pocket])
+  const reset = () => { setDayLimit(4); setDayR(null); setAmtR(null); setCat(''); setPocket('') }
 
   return (
     <div className="stack" style={{ gap: 'var(--space-5)' }}>
@@ -107,7 +109,7 @@ export function ExpenseList({ expenses, cats, pockets, days }: {
           </div>
         </div>, document.body) : null}
 
-      {shown.length ? [...byDay.entries()].map(([day, list]) => (
+      {shown.length ? [...byDay.entries()].slice(0, dayLimit).map(([day, list]) => (
         <section key={day} className="day" aria-label={tgl(day)}>
           <div className="day-sep">
             <span className="day-badge" aria-hidden><b>{Number(day.slice(8, 10))}</b><i>{new Date(day + 'T00:00:00Z').toLocaleDateString('id-ID', { weekday: 'short', timeZone: 'UTC' })}</i></span>
@@ -128,6 +130,11 @@ export function ExpenseList({ expenses, cats, pockets, days }: {
           </ul>
         </section>
       )) : <p className="hint">{expenses.length ? 'Tidak ada catatan yang cocok dengan filter ini.' : 'Belum ada catatan.'}</p>}
+      {byDay.size > dayLimit ? (
+        <button type="button" className="btn small ghost more-btn" onClick={() => setDayLimit(dayLimit + 4)}>
+          <ChevronDown aria-hidden size={16} /> Lihat lebih banyak ({byDay.size - dayLimit} hari lagi)
+        </button>
+      ) : null}
     </div>
   )
 }

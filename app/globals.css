@@ -611,3 +611,10 @@ body { background: var(--color-paper-2); }
 /* Split bill */
 .split-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-6); align-items: start; }
 @media (max-width: 760px) { .split-grid { grid-template-columns: minmax(0, 1fr); gap: var(--space-5); } }
+
+/* Lihat lebih banyak + bagian lipat */
+.more-btn { align-self: center; margin-top: var(--space-3); }
+.fold > summary { list-style: none; cursor: pointer; justify-content: center; }
+.fold > summary::-webkit-details-marker { display: none; }
+.fold[open] > summary { margin-bottom: var(--space-4); }
+@media (max-width: 960px) { .first-m { order: -1; } }
