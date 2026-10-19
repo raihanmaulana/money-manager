@@ -15,6 +15,7 @@ export type Transfer = { id: string; from_pocket: string; to_pocket: string; amo
 export type BillPayment = { id: string; bill_id: string; ym: string; amount: number; pocket_id: string | null; paid_on: string }
 export type PocketAdjustment = { id: string; pocket_id: string; amount: number; note: string; adjusted_on: string }
 export type Recurring = { id: string; note: string; amount: number; category_label: string; pocket_id: string | null; day: number; start_ym: string; end_ym: string | null; skipped_ym: string[] }
+export type Split = { id: string; ym: string; split_on: string; name: string; amount: number; note: string }
 export type PocketView = Pocket & { saldo: number }
 
 export type MonthData = {

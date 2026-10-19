@@ -6,7 +6,7 @@ import { queryPockets } from './pockets.ts'
 import { ensureRecurring } from './recurring.ts'
 import { supabaseServer } from './supabase/server.ts'
 import * as demo from './demo.ts'
-import type { Bill, BillMonth, BillPayment, BudgetItem, Expense, Goal, GoalDeposit, IncomeItem, MonthData, PocketAdjustment, PocketView, Recurring, Transfer } from './types.ts'
+import type { Bill, BillMonth, BillPayment, BudgetItem, Expense, Goal, GoalDeposit, IncomeItem, MonthData, PocketAdjustment, PocketView, Recurring, Split, Transfer } from './types.ts'
 
 export const DEMO = process.env.DEMO_MODE === '1'
 
@@ -105,6 +105,14 @@ export async function loadRecurring(ctx: Ctx): Promise<Recurring[]> {
   const sb = await supabaseServer()
   const { data } = await sb.from('recurring_expenses').select('*').eq('owner_id', ctx.userId).order('day').order('created_at')
   return (data ?? []).map((r) => ({ ...r, amount: num(r.amount), skipped_ym: r.skipped_ym ?? [] })) as Recurring[]
+}
+
+/** Daftar split bill (patungan) pada bulan yang dipilih. */
+export async function loadSplits(ctx: Ctx): Promise<Split[]> {
+  if (DEMO) return demo.demoSplits(ctx.ym)
+  const sb = await supabaseServer()
+  const { data } = await sb.from('split_bills').select('*').eq('owner_id', ctx.userId).eq('ym', ctx.ym).order('split_on', { ascending: false }).order('created_at', { ascending: false })
+  return (data ?? []).map((r) => ({ ...r, amount: num(r.amount) })) as Split[]
 }
 
 export async function prevMonthHasData(ctx: Ctx, prev: string): Promise<boolean> {

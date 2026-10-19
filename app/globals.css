@@ -607,3 +607,7 @@ body { background: var(--color-paper-2); }
 /* baris sempit: nama boleh turun ke baris sendiri, tidak terpotong */
 .rows > li { flex-wrap: wrap; row-gap: var(--space-2); }
 .rows > li > .grow { flex: 1 1 11rem; }
+
+/* Split bill */
+.split-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-6); align-items: start; }
+@media (max-width: 760px) { .split-grid { grid-template-columns: minmax(0, 1fr); gap: var(--space-5); } }

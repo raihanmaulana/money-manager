@@ -780,3 +780,21 @@ export async function deleteRecurring(id: string) {
   await mirror(c, [], 'Hapus berulang', 'Catatan', `${old.note} tidak diulang lagi (catatan lama tetap ada)`)
   done()
 }
+
+/** Split bill: catat nama + nominal yang harus dibayar orang lain. */
+export async function addSplit(formData: FormData) {
+  const split_on = text(formData.get('split_on'), 10)
+  const name = text(formData.get('name'), 60)
+  const amount = money(formData.get('amount'))
+  if (!name || !/^\d{4}-\d{2}-\d{2}$/.test(split_on) || !isYm(split_on.slice(0, 7)) || amount <= 0) return
+  const c = await me()
+  if (!c) return done()
+  await c.sb.from('split_bills').insert({ owner_id: c.uid, ym: split_on.slice(0, 7), split_on, name, amount, note: text(formData.get('note'), 120) })
+  done()
+}
+export async function deleteSplit(id: string) {
+  const c = await me()
+  if (!c) return done()
+  await c.sb.from('split_bills').delete().eq('id', id).eq('owner_id', c.uid)
+  done()
+}
