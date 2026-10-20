@@ -103,7 +103,7 @@ export function Calculator() {
   }) // eslint-disable-line react-hooks/exhaustive-deps
 
   const copy = async () => {
-    if (result === null) return
+    if (!done || result === null) return
     try { await navigator.clipboard.writeText(String(result)); setCopied(true) } catch { /* diabaikan */ }
   }
 
@@ -128,7 +128,7 @@ export function Calculator() {
           </div>
           <div className="calc-screen" aria-live="polite">
             <span className="calc-expr">{expr ? pretty(expr) : '0'}</span>
-            <b className="calc-res">{result !== null && !done ? `= ${fmt(result)}` : done && result !== null ? fmt(result) : expr ? '…' : ' '}</b>
+            <b className="calc-res">{done && result !== null ? fmt(result) : ' '}</b>
           </div>
           <div className="calc-keys">
             {keys.map(([k, label, kind]) => (
@@ -137,7 +137,7 @@ export function Calculator() {
               </button>
             ))}
           </div>
-          <button type="button" className="btn small ghost full" onClick={copy} disabled={result === null}>
+          <button type="button" className="btn small ghost full" onClick={copy} disabled={!done || result === null}>
             {copied ? <><Check aria-hidden size={16} /> Tersalin</> : <><Copy aria-hidden size={16} /> Salin hasil</>}
           </button>
         </div>
