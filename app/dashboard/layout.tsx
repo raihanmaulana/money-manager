@@ -4,6 +4,7 @@ import { LogoutButton } from '@/components/LogoutButton'
 import { RailNav, TabBar } from '@/components/Nav'
 import { CommandPaletteTrigger } from '@/components/CommandPalette'
 import { Mark } from '@/components/Mark'
+import { Calculator } from '@/components/Calculator'
 import { PageScope } from '@/components/PageScope'
 
 export const dynamic = 'force-dynamic'
@@ -33,6 +34,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           {children}
         </main>
       </div>
+      <Calculator />
       <TabBar />
     </PageScope>
   )
