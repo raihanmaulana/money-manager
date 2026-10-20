@@ -34,7 +34,7 @@ export default async function Catatan() {
       <div className="bento">
         <section className="tile s7" style={{ ['--i' as string]: 0 }} aria-labelledby="h-list">
           <div className="tile-head"><TileTitle id="h-list" icon={ListChecks}>Semua catatan</TileTitle><span className="tile-note">{data.expenses.length} catatan</span></div>
-          <ExpenseList expenses={data.expenses} cats={pos} pockets={pockets} days={daysInMonth(ctx.ym)} />
+          <ExpenseList splits={splits} expenses={data.expenses} cats={pos} pockets={pockets} days={daysInMonth(ctx.ym)} />
         </section>
 
         <div className="stack col5 first-m">
