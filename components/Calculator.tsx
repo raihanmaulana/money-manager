@@ -53,7 +53,8 @@ function calc(expr: string): number | null {
 }
 
 const fmt = (n: number) => n.toLocaleString('id-ID', { maximumFractionDigits: 8 })
-const pretty = (e: string) => e.replace(/[*/-]/g, (c) => ` ${SHOW[c]} `).replace(/\+/g, ' + ').replace(/%/g, '%')
+const group = (e: string) => e.replace(/(\d+)(,\d*)?/g, (_, i: string, d = '') => i.replace(/\B(?=(\d{3})+(?!\d))/g, '.') + d)
+const pretty = (e: string) => group(e).replace(/[*/-]/g, (c) => ` ${SHOW[c]} `).replace(/\+/g, ' + ')
 
 /** Tombol melayang di kanan layar yang membuka kalkulator mini. */
 export function Calculator() {
