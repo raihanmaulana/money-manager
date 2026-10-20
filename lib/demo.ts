@@ -64,7 +64,7 @@ export const demoRecurring: Recurring[] = [
 ]
 
 export const demoSplits = (ym: string): Split[] => [
-  { id: 'sp1', ym, split_on: `${ym}-12`, name: 'Dimas', amount: 85000, note: 'Makan malam bertiga' },
-  { id: 'sp2', ym, split_on: `${ym}-12`, name: 'Sari', amount: 85000, note: 'Makan malam bertiga' },
+  { id: 'sp1', expense_id: 'e5', ym, split_on: `${ym}-08`, name: 'Dimas', amount: 85000, note: 'Makan malam bareng teman' },
+  { id: 'sp2', expense_id: 'e5', ym, split_on: `${ym}-08`, name: 'Sari', amount: 85000, note: 'Makan malam bareng teman' },
   { id: 'sp3', ym, split_on: `${ym}-08`, name: 'Bagas', amount: 120000, note: 'Patungan tiket nonton' },
 ]

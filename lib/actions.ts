@@ -206,6 +206,7 @@ export async function addExpense(formData: FormData): Promise<string | void> {
     owner_id: c.uid, ym: spent_on.slice(0, 7), spent_on,
     budget_item_id: item || null, note, amount, pocket_id,
   }).select('id').single()
+  if (row) await saveSplits(c, formData, row.id as string, spent_on, note)
   if (row) await mirror(c, [{ table: 'expenses', id: row.id }], 'Tambah', 'Catatan', `${spent_on}: ${note || 'pengeluaran'} ${fmtRp(amount)}`, [spent_on.slice(0, 7)])
   done()
   return lowBalance(c, pocket_id)
@@ -228,6 +229,7 @@ export async function updateExpense(formData: FormData) {
   const pocket_id = await pocketOf(c, formData.get('pocket_id'))
   const note = text(formData.get('note'), 120)
   await c.sb.from('expenses').update({ amount, spent_on, ym: spent_on.slice(0, 7), budget_item_id, pocket_id, note }).eq('id', id).eq('owner_id', c.uid)
+  await saveSplits(c, formData, id, spent_on, note)
   await mirror(c, [{ table: 'expenses', id }], 'Ubah', 'Catatan', `${old.spent_on}: ${old.note || 'pengeluaran'} ${fmtRp(Number(old.amount))} → ${spent_on}: ${note || 'pengeluaran'} ${fmtRp(amount)}`, [old.ym, spent_on.slice(0, 7)])
   done()
 }
@@ -781,16 +783,12 @@ export async function deleteRecurring(id: string) {
   done()
 }
 
-/** Split bill: catat nama + nominal yang harus dibayar orang lain. */
-export async function addSplit(formData: FormData) {
-  const split_on = text(formData.get('split_on'), 10)
-  const name = text(formData.get('name'), 60)
-  const amount = money(formData.get('amount'))
-  if (!name || !/^\d{4}-\d{2}-\d{2}$/.test(split_on) || !isYm(split_on.slice(0, 7)) || amount <= 0) return
-  const c = await me()
-  if (!c) return done()
-  await c.sb.from('split_bills').insert({ owner_id: c.uid, ym: split_on.slice(0, 7), split_on, name, amount, note: text(formData.get('note'), 120) })
-  done()
+/** Simpan baris split bill (nama + nominal) dari form catatan, terkait ke satu pengeluaran. */
+async function saveSplits(c: NonNullable<Awaited<ReturnType<typeof me>>>, formData: FormData, expense_id: string, spent_on: string, note: string) {
+  const names = formData.getAll('split_name'), amts = formData.getAll('split_amount')
+  const rows = names.map((n, i) => ({ name: text(n, 60), amount: money(amts[i]) })).filter((r) => r.name && r.amount > 0).slice(0, 20)
+  if (!rows.length) return
+  await c.sb.from('split_bills').insert(rows.map((r) => ({ owner_id: c.uid, ym: spent_on.slice(0, 7), split_on: spent_on, name: r.name, amount: r.amount, note, expense_id })))
 }
 export async function deleteSplit(id: string) {
   const c = await me()

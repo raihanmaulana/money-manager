@@ -5,6 +5,7 @@ import { Pencil } from 'lucide-react'
 import { useBusyTransition } from './Busy'
 import { useToast } from './Toast'
 import { MoneyInput } from './Fields'
+import { SplitFields } from './SplitFields'
 import { DatePicker } from './DatePicker'
 import { updateExpense } from '@/lib/actions'
 import type { Expense, Pocket } from '@/lib/types'
@@ -63,6 +64,7 @@ export function ExpenseEditor({ expense, cats, pockets }: { expense: Expense; ca
                   </label>
                 ) : null}
                 <label className="field full"><span>Catatan</span><input className="input" name="note" maxLength={120} defaultValue={expense.note} /></label>
+                <SplitFields />
               </div>
               <div className="confirm-actions">
                 <button type="submit" className="btn" disabled={pending} aria-busy={pending}>{pending ? 'Menyimpan…' : 'Simpan perubahan'}</button>

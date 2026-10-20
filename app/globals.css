@@ -609,8 +609,6 @@ body { background: var(--color-paper-2); }
 .rows > li > .grow { flex: 1 1 11rem; }
 
 /* Split bill */
-.split-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-6); align-items: start; }
-@media (max-width: 760px) { .split-grid { grid-template-columns: minmax(0, 1fr); gap: var(--space-5); } }
 
 /* Lihat lebih banyak + bagian lipat */
 .more-btn { align-self: center; margin-top: var(--space-3); }
@@ -618,3 +616,9 @@ body { background: var(--color-paper-2); }
 .fold > summary::-webkit-details-marker { display: none; }
 .fold[open] > summary { margin-bottom: var(--space-4); }
 @media (max-width: 960px) { .first-m { order: -1; } }
+
+/* Split bill di form catatan */
+.split-fields { gap: var(--space-2); }
+.split-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; gap: var(--space-2); align-items: center; }
+@media (max-width: 520px) { .split-row { grid-template-columns: minmax(0, 1fr) auto; } .split-row .input:first-child { grid-column: 1 / -1; } }
+.split-add { align-self: start; }

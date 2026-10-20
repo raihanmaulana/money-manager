@@ -3,13 +3,14 @@ import Link from 'next/link'
 import { Download, FileText, ListChecks, Plus, Repeat, Target, Users } from 'lucide-react'
 import { getCtx, loadMonth, loadPockets, loadRecurring, loadSplits } from '@/lib/data'
 import { billRowsFor, daysInMonth, rp, summarize, ymLabel } from '@/lib/calc'
-import { addExpense, addRecurring, addSplit, deleteRecurring, deleteSplit, setRecurringField } from '@/lib/actions'
+import { addExpense, addRecurring, deleteRecurring, deleteSplit, setRecurringField } from '@/lib/actions'
 import { ConfirmButton } from '@/components/ConfirmButton'
 import { PageHead } from '@/components/PageHead'
 import { EmptyMonth } from '@/components/EmptyMonth'
 import { DatePicker } from '@/components/DatePicker'
 import { ExpenseList } from '@/components/ExpenseList'
 import { ShowMore, Fold } from '@/components/ShowMore'
+import { SplitFields } from '@/components/SplitFields'
 import { PocketSelect } from '@/components/PocketSelect'
 import { InlineField, MoneyInput, QuickForm, Submit } from '@/components/Fields'
 
@@ -52,6 +53,7 @@ export default async function Catatan() {
                   <label className="field"><span>Tanggal</span><DatePicker name="spent_on" label="Tanggal" defaultValue={defDate} min={`${ctx.ym}-01`} max={`${ctx.ym}-${String(daysInMonth(ctx.ym)).padStart(2, '0')}`} /></label>
                   <PocketSelect pockets={pockets} full />
                   <label className="field full"><span>Catatan</span><input className="input" name="note" maxLength={120} placeholder="mis. kopi sore" /></label>
+                  <SplitFields />
                 </div>
                 <Submit className="btn full"><Plus aria-hidden /> Simpan catatan</Submit>
               </QuickForm>
@@ -118,35 +120,24 @@ export default async function Catatan() {
           </section>
         </div>
         <section className="tile s12 split" style={{ ['--i' as string]: 4 }} aria-labelledby="h-split">
-          <div className="tile-head"><TileTitle id="h-split" icon={Users}>Split bill</TileTitle><span className="tile-note">{splits.length} orang · {rp(splits.reduce((t, x) => t + x.amount, 0))}</span></div>
-          <p className="hint" style={{ marginBottom: 'var(--space-3)' }}>Patungan dengan teman? Catat nama dan nominal yang harus mereka bayar. Daftar ini terpisah dari pengeluaranmu.</p>
-          <div className="split-grid">
-            <Fold summary={<><Plus aria-hidden size={16} /> Tambah split bill</>} defaultOpen={!splits.length}>
-            <QuickForm action={addSplit} className="stack">
-              <div className="form-grid">
-                <label className="field"><span>Nama</span><input className="input" name="name" required maxLength={60} placeholder="mis. Dimas" /></label>
-                <label className="field"><span>Nominal</span><MoneyInput name="amount" label="Nominal split bill" required /></label>
-                <label className="field"><span>Tanggal</span><DatePicker name="split_on" label="Tanggal split bill" defaultValue={defDate} min={`${ctx.ym}-01`} max={`${ctx.ym}-${String(daysInMonth(ctx.ym)).padStart(2, '0')}`} /></label>
-                <label className="field"><span>Keterangan</span><input className="input" name="note" maxLength={120} placeholder="mis. makan malam bertiga" /></label>
-              </div>
-              <Submit className="btn full"><Plus aria-hidden /> Tambah split bill</Submit>
-            </QuickForm>
-            </Fold>
-            {splits.length ? (
-              <ShowMore limit={4} noun="orang" className="rows">
-                {splits.map((x) => (
+          <div className="tile-head"><TileTitle id="h-split" icon={Users}>Split bill · hutang teman</TileTitle><span className="tile-note">{splits.length} orang · {rp(splits.reduce((t, x) => t + x.amount, 0))}</span></div>
+          {splits.length ? (
+            <ShowMore limit={5} noun="orang" className="rows">
+              {splits.map((x) => {
+                const e = data.expenses.find((y) => y.id === x.expense_id)
+                return (
                   <li key={x.id} className="row wrap">
-                    <span className="grow" style={{ minWidth: '8rem' }}>
+                    <span className="grow" style={{ minWidth: '9rem' }}>
                       <span className="name">{x.name}</span>
-                      <span className="meta">{x.split_on.slice(8)} {ymLabel(x.ym)}{x.note ? ` · ${x.note}` : ''}</span>
+                      <span className="meta">{e?.note || x.note || 'Pengeluaran'} · {x.split_on.slice(8)} {ymLabel(x.ym)}{e ? ` · total ${rp(e.amount)}` : ''}</span>
                     </span>
                     <span className="amt">{rp(x.amount)}</span>
-                    <ConfirmButton action={deleteSplit} args={[x.id]} trigger="Hapus" title={`Hapus split bill ${x.name}?`} confirmText="Ya, hapus" message="Entri ini dihapus dari daftar split bill." />
+                    <ConfirmButton action={deleteSplit} args={[x.id]} trigger="Hapus" title={`Hapus split bill ${x.name}?`} confirmText="Ya, hapus" message="Entri ini dihapus dari daftar hutang teman. Catatan pengeluarannya tetap ada." />
                   </li>
-                ))}
-              </ShowMore>
-            ) : <p className="hint">Belum ada split bill bulan ini.</p>}
-          </div>
+                )
+              })}
+            </ShowMore>
+          ) : <p className="hint">Belum ada. Saat mencatat pengeluaran, tekan tombol <b>Split bill</b> untuk menambahkan nama teman dan nominal yang harus ia bayar.</p>}
         </section>
       </div>
     </>
