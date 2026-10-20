@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { ChevronDown, Filter, FilterX, Users } from 'lucide-react'
+import { ChevronDown, Filter, FilterX, Search, Users } from 'lucide-react'
 import { ThemedSelect } from './ThemedSelect'
 import { ActionButton } from './Fields'
 import { ExpenseEditor } from './ExpenseEditor'
@@ -19,6 +19,7 @@ export function ExpenseList({ expenses, cats, pockets, days, splits = [] }: {
 }) {
   const [dayR, setDayR] = useState<[number, number] | null>(null)
   const [amtR, setAmtR] = useState<[number, number] | null>(null)
+  const [q, setQ] = useState('')
   const [cat, setCat] = useState('')
   const [pocket, setPocket] = useState('')
   const [open, setOpen] = useState(false)
@@ -31,19 +32,21 @@ export function ExpenseList({ expenses, cats, pockets, days, splits = [] }: {
   const maxAmt = Math.max(step, Math.ceil(top / step) * step)
   const d: [number, number] = dayR ?? [1, days]
   const a: [number, number] = amtR ?? [0, maxAmt]
-  const active = !!(dayR || amtR || cat || pocket)
+  const active = !!(dayR || amtR || cat || pocket || q.trim())
 
   const label = (id: string | null) => cats.find((p) => p.id === id)?.label
   const pk = (id?: string | null) => pockets.find((p) => p.id === id)?.name
 
   const shown = useMemo(() => expenses.filter((e) => {
     const day = Number(e.spent_on.slice(8, 10))
+    const kw = q.trim().toLowerCase()
+    if (kw && !(`${e.note} ${label(e.budget_item_id) ?? ''} ${pk(e.pocket_id) ?? ''} ${splits.filter((x) => x.expense_id === e.id).map((x) => x.name).join(' ')}`.toLowerCase().includes(kw))) return false
     if (day < d[0] || day > d[1]) return false
     if (e.amount < a[0] || e.amount > a[1]) return false
     if (cat === NONE ? e.budget_item_id : cat && e.budget_item_id !== cat) return false
     if (pocket === NONE ? e.pocket_id : pocket && e.pocket_id !== pocket) return false
     return true
-  }), [expenses, d[0], d[1], a[0], a[1], cat, pocket]) // eslint-disable-line react-hooks/exhaustive-deps
+  }), [expenses, splits, q, d[0], d[1], a[0], a[1], cat, pocket]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const byDay = new Map<string, Expense[]>()
   for (const e of shown) byDay.set(e.spent_on, [...(byDay.get(e.spent_on) ?? []), e])
@@ -70,11 +73,15 @@ export function ExpenseList({ expenses, cats, pockets, days, splits = [] }: {
     return () => { document.removeEventListener('keydown', onKey); document.body.style.overflow = prev }
   }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => { setDayLimit(4) }, [dayR, amtR, cat, pocket])
-  const reset = () => { setDayLimit(4); setDayR(null); setAmtR(null); setCat(''); setPocket('') }
+  useEffect(() => { setDayLimit(4) }, [dayR, amtR, cat, pocket, q])
+  const reset = () => { setQ(''); setDayLimit(4); setDayR(null); setAmtR(null); setCat(''); setPocket('') }
 
   return (
     <div className="stack" style={{ gap: 'var(--space-5)' }}>
+      <label className="search-box">
+        <Search aria-hidden size={16} />
+        <input className="input" type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari catatan, mis. makan siang" aria-label="Cari catatan" maxLength={60} />
+      </label>
       <div className="filter-bar">
         <button type="button" ref={opener} className="btn small ghost filter-btn" onClick={() => setOpen(true)} aria-haspopup="dialog">
           <Filter aria-hidden size={16} /> Filter{nActive ? <span className="filter-badge" aria-label={`${nActive} filter aktif`}>{nActive}</span> : null}
