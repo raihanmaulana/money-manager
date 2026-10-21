@@ -11,15 +11,15 @@ const fmt = (v: string) => {
 }
 
 /** Input uang berformat Rp1.500.000 (nilai dikirim apa adanya, server membersihkan titik) */
-export function MoneyInput({ name, defaultValue = 0, label, required, placeholder = '0', className = '' }: {
-  name: string; defaultValue?: number; label: string; required?: boolean; placeholder?: string; className?: string
+export function MoneyInput({ name, defaultValue = 0, label, required, placeholder = '0', className = '', onValue }: {
+  onValue?: (n: number) => void; name: string; defaultValue?: number; label: string; required?: boolean; placeholder?: string; className?: string
 }) {
   const [v, setV] = useState(defaultValue ? fmt(String(defaultValue)) : '')
   return (
     <div className={`pre ${className}`}>
       <em aria-hidden>Rp</em>
       <input className="input money" name={name} inputMode="numeric" autoComplete="off" aria-label={label} required={required}
-        placeholder={placeholder} value={v} onChange={(e) => setV(fmt(e.target.value))} />
+        placeholder={placeholder} value={v} onChange={(e) => { const f = fmt(e.target.value); setV(f); onValue?.(Number(f.replace(/\D/g, '')) || 0) }} />
     </div>
   )
 }

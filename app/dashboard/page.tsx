@@ -1,7 +1,7 @@
 import { TileTitle } from '@/components/TileTitle'
 import Link from 'next/link'
 import { BellRing, HeartPulse, PieChart, History, PenLine, Plus, Receipt, Waypoints } from 'lucide-react'
-import { getCtx, loadMonth, loadPockets } from '@/lib/data'
+import { getCtx, loadMonth, loadNeeds, loadPockets } from '@/lib/data'
 import { billRowsFor, daysInMonth, rp, summarize, ymLabel } from '@/lib/calc'
 import { addExpense } from '@/lib/actions'
 import { PageHead } from '@/components/PageHead'
@@ -29,7 +29,7 @@ function Gauge({ name, value, goal, kind, text }: { name: string; value: number;
 
 export default async function Beranda() {
   const ctx = await getCtx()
-  const [data, { pockets }] = await Promise.all([loadMonth(ctx), loadPockets(ctx)])
+  const [data, { pockets }, needs] = await Promise.all([loadMonth(ctx), loadPockets(ctx), loadNeeds(ctx)])
   const rows = billRowsFor(data.bills, data.billMonths, ctx.ym)
   const s = summarize(data.income, data.budget, data.expenses, rows, ctx.today, ctx.ym)
   const title = 'Ringkasan'
@@ -64,6 +64,11 @@ export default async function Beranda() {
   for (const p of pockets) if (p.saldo < 0) alerts.push({ tone: 'over', text: `Saldo ${p.name} minus ${rp(-p.saldo)}`, href: '/dashboard/sumber-dana' })
   if (s.uangBelanja > 0 && s.sisaJatah < 0) alerts.push({ tone: 'over', text: `Jatah belanja sudah terlewat ${rp(-s.sisaJatah)}`, href: '/dashboard/catatan' })
   else if (s.uangBelanja > 0 && s.sisaJatah / s.uangBelanja < 0.15) alerts.push({ tone: 'warn', text: `Jatah belanja tinggal ${Math.round((s.sisaJatah / s.uangBelanja) * 100)}% (${rp(s.sisaJatah)})`, href: '/dashboard/catatan' })
+  if (nowMonth) {
+    const got = new Set(needs.purchases.map((p) => p.item_id))
+    const due = needs.items.filter((i) => !got.has(i.id) && i.remind_day && i.remind_day <= ctx.today.day)
+    if (due.length) alerts.push({ tone: due.some((i) => (i.remind_day ?? 0) < ctx.today.day) ? 'over' : 'warn', text: `${due.length} kebutuhan belum dibeli: ${due.slice(0, 3).map((i) => i.name).join(', ')}${due.length > 3 ? ', …' : ''}`, href: '/dashboard/kebutuhan' })
+  }
   const sliceMap = new Map<string, Slice>()
   for (const e of data.expenses) {
     const key = e.budget_item_id ?? '__none'

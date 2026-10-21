@@ -796,3 +796,86 @@ export async function deleteSplit(id: string) {
   await c.sb.from('split_bills').delete().eq('id', id).eq('owner_id', c.uid)
   done()
 }
+
+// ---------- List kebutuhan ----------
+const qtyOf = (v: FormDataEntryValue | null) => {
+  const n = Number(String(v ?? '').replace(',', '.'))
+  return Number.isFinite(n) && n > 0 ? Math.min(Math.round(n * 100) / 100, 100000) : 1
+}
+const dayOf = (v: FormDataEntryValue | null) => {
+  const n = Number(String(v ?? '').trim())
+  return Number.isInteger(n) && n >= 1 && n <= 31 ? n : null
+}
+export async function addNeed(formData: FormData) {
+  const name = text(formData.get('name'), 80)
+  if (!name) return
+  const c = await me()
+  if (!c) return done()
+  await c.sb.from('need_items').insert({
+    owner_id: c.uid, name, category: text(formData.get('category'), 40) || 'Umum',
+    est_price: money(formData.get('est_price')), qty: qtyOf(formData.get('qty')), remind_day: dayOf(formData.get('remind_day')),
+    budget_label: text(formData.get('budget_label'), 60), pocket_id: await pocketOf(c, formData.get('pocket_id')),
+  })
+  done()
+}
+export async function updateNeed(formData: FormData) {
+  const id = text(formData.get('id'), 40)
+  const name = text(formData.get('name'), 80)
+  if (!id || !name) return
+  const c = await me()
+  if (!c) return done()
+  await c.sb.from('need_items').update({
+    name, category: text(formData.get('category'), 40) || 'Umum',
+    est_price: money(formData.get('est_price')), qty: qtyOf(formData.get('qty')), remind_day: dayOf(formData.get('remind_day')),
+    budget_label: text(formData.get('budget_label'), 60), pocket_id: await pocketOf(c, formData.get('pocket_id')),
+  }).eq('id', id).eq('owner_id', c.uid)
+  done()
+}
+export async function deleteNeed(id: string) {
+  const c = await me()
+  if (!c) return done()
+  await c.sb.from('need_items').delete().eq('id', id).eq('owner_id', c.uid)
+  done() // catatan pengeluaran yang sudah terbuat tetap ada
+}
+/** Tandai barang sudah dibeli: simpan pembelian dan buat satu catatan pengeluaran (harga asli). */
+export async function buyNeed(formData: FormData): Promise<string | void> {
+  const item_id = text(formData.get('item_id'), 40)
+  const ym = text(formData.get('ym'), 7)
+  const spent_on = text(formData.get('spent_on'), 10)
+  const unit_price = money(formData.get('unit_price'))
+  const qty = qtyOf(formData.get('qty'))
+  if (!item_id || !isYm(ym) || !/^\d{4}-\d{2}-\d{2}$/.test(spent_on) || !isYm(spent_on.slice(0, 7))) return 'Tanggal tidak valid.'
+  const total = Math.round(unit_price * qty)
+  if (total <= 0) return 'Isi harga yang dibayar.'
+  const c = await me()
+  if (!c) return done()
+  const item = (await c.sb.from('need_items').select('*').eq('id', item_id).eq('owner_id', c.uid).maybeSingle()).data
+  if (!item) return 'Barang tidak ditemukan.'
+  const dup = (await c.sb.from('need_purchases').select('id').eq('item_id', item_id).eq('ym', ym).maybeSingle()).data
+  if (dup) return 'Barang ini sudah ditandai dibeli bulan ini.'
+  const label = text(formData.get('budget_label'), 60)
+  const pocket_id = await pocketOf(c, formData.get('pocket_id'))
+  let budget_item_id: string | null = null
+  if (label) {
+    const { data: b } = await c.sb.from('budget_items').select('id').eq('owner_id', c.uid).eq('ym', spent_on.slice(0, 7)).eq('label', label).limit(1).maybeSingle()
+    budget_item_id = b ? (b.id as string) : null
+  }
+  const note = `${item.name}${qty !== 1 ? ` ×${qty}` : ''}`.slice(0, 120)
+  const { data: exp } = await c.sb.from('expenses').insert({ owner_id: c.uid, ym: spent_on.slice(0, 7), spent_on, budget_item_id, note, amount: total, pocket_id }).select('id').single()
+  if (!exp) return 'Gagal menyimpan, coba lagi.'
+  await c.sb.from('need_purchases').insert({ owner_id: c.uid, item_id, ym, qty, unit_price, total, est_total: Math.round(Number(item.est_price) * Number(item.qty)), bought_on: spent_on, expense_id: exp.id })
+  await c.sb.from('need_items').update({ budget_label: label, pocket_id }).eq('id', item_id).eq('owner_id', c.uid) // diingat untuk pembelian berikutnya
+  await mirror(c, [{ table: 'expenses', id: exp.id }], 'Tambah', 'Catatan', `${spent_on}: ${note} ${fmtRp(total)} (List Kebutuhan)`, [spent_on.slice(0, 7)])
+  done()
+  return lowBalance(c, pocket_id)
+}
+/** Batalkan "sudah dibeli": catatan pengeluaran terkait ikut dihapus. */
+export async function unbuyNeed(purchaseId: string) {
+  const c = await me()
+  if (!c) return done()
+  const p = (await c.sb.from('need_purchases').select('id, expense_id').eq('id', purchaseId).eq('owner_id', c.uid).maybeSingle()).data
+  if (!p) return
+  if (p.expense_id) await deleteExpense(p.expense_id as string)
+  await c.sb.from('need_purchases').delete().eq('id', purchaseId).eq('owner_id', c.uid)
+  done()
+}

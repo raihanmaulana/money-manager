@@ -6,7 +6,7 @@ import { queryPockets } from './pockets.ts'
 import { ensureRecurring } from './recurring.ts'
 import { supabaseServer } from './supabase/server.ts'
 import * as demo from './demo.ts'
-import type { Bill, BillMonth, BillPayment, BudgetItem, Expense, Goal, GoalDeposit, IncomeItem, MonthData, PocketAdjustment, PocketView, Recurring, Split, Transfer } from './types.ts'
+import type { Bill, BillMonth, BillPayment, BudgetItem, Expense, Goal, GoalDeposit, IncomeItem, MonthData, PocketAdjustment, NeedItem, NeedPurchase, PocketView, Recurring, Split, Transfer } from './types.ts'
 
 export const DEMO = process.env.DEMO_MODE === '1'
 
@@ -113,6 +113,20 @@ export async function loadSplits(ctx: Ctx): Promise<Split[]> {
   const sb = await supabaseServer()
   const { data } = await sb.from('split_bills').select('*').eq('owner_id', ctx.userId).eq('ym', ctx.ym).order('split_on', { ascending: false }).order('created_at', { ascending: false })
   return (data ?? []).map((r) => ({ ...r, amount: num(r.amount) })) as Split[]
+}
+
+/** List kebutuhan (barang berulang) dan pembelian bulan yang dipilih. */
+export async function loadNeeds(ctx: Ctx): Promise<{ items: NeedItem[]; purchases: NeedPurchase[] }> {
+  if (DEMO) return { items: demo.demoNeeds, purchases: demo.demoNeedPurchases(ctx.ym) }
+  const sb = await supabaseServer()
+  const [i, p] = await Promise.all([
+    sb.from('need_items').select('*').eq('owner_id', ctx.userId).order('category').order('created_at'),
+    sb.from('need_purchases').select('*').eq('owner_id', ctx.userId).eq('ym', ctx.ym),
+  ])
+  return {
+    items: (i.data ?? []).map((r) => ({ ...r, est_price: num(r.est_price), qty: num(r.qty) })) as NeedItem[],
+    purchases: (p.data ?? []).map((r) => ({ ...r, qty: num(r.qty), unit_price: num(r.unit_price), total: num(r.total), est_total: num(r.est_total) })) as NeedPurchase[],
+  }
 }
 
 export async function prevMonthHasData(ctx: Ctx, prev: string): Promise<boolean> {

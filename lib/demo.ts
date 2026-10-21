@@ -1,5 +1,5 @@
 // Data contoh untuk DEMO_MODE=1 (hanya untuk melihat tampilan tanpa database).
-import type { BillPayment, Recurring, Split, Bill, BillMonth, BudgetItem, Expense, Goal, GoalDeposit, IncomeItem, Pocket, Transfer } from './types.ts'
+import type { NeedItem, NeedPurchase, BillPayment, Recurring, Split, Bill, BillMonth, BudgetItem, Expense, Goal, GoalDeposit, IncomeItem, Pocket, Transfer } from './types.ts'
 
 export const demoIncome = (ym: string): IncomeItem[] => [
   { id: 'i1', ym, label: 'Gaji kotor', kind: 'masuk', amount: 6_500_000, sort: 0, pocket_id: 'p1' },
@@ -67,4 +67,16 @@ export const demoSplits = (ym: string): Split[] => [
   { id: 'sp1', expense_id: 'e5', ym, split_on: `${ym}-08`, name: 'Dimas', amount: 85000, note: 'Makan malam bareng teman' },
   { id: 'sp2', expense_id: 'e5', ym, split_on: `${ym}-08`, name: 'Sari', amount: 85000, note: 'Makan malam bareng teman' },
   { id: 'sp3', ym, split_on: `${ym}-08`, name: 'Bagas', amount: 120000, note: 'Patungan tiket nonton' },
+]
+
+export const demoNeeds: NeedItem[] = [
+  { id: 'n1', category: 'Kucing', name: 'Makanan kucing', est_price: 85_000, qty: 2, remind_day: 5, budget_label: 'Belanja', pocket_id: 'p2' },
+  { id: 'n2', category: 'Kucing', name: 'Pasir tofu', est_price: 45_000, qty: 1, remind_day: 10, budget_label: 'Belanja', pocket_id: 'p2' },
+  { id: 'n3', category: 'Dapur', name: 'Beras 5 kg', est_price: 70_000, qty: 1, remind_day: 3, budget_label: 'Makan', pocket_id: 'p3' },
+  { id: 'n4', category: 'Dapur', name: 'Minyak goreng', est_price: 38_000, qty: 1, remind_day: 28, budget_label: 'Makan', pocket_id: 'p3' },
+  { id: 'n5', category: 'Mandi', name: 'Sabun cair', est_price: 32_000, qty: 1, remind_day: null, budget_label: 'Belanja', pocket_id: 'p2' },
+]
+export const demoNeedPurchases = (ym: string): NeedPurchase[] => [
+  { id: 'np1', item_id: 'n1', ym, qty: 2, unit_price: 80_000, total: 160_000, est_total: 170_000, bought_on: `${ym}-04`, expense_id: null },
+  { id: 'np2', item_id: 'n3', ym, qty: 1, unit_price: 74_000, total: 74_000, est_total: 70_000, bought_on: `${ym}-03`, expense_id: null },
 ]

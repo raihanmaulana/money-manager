@@ -16,6 +16,8 @@ export type BillPayment = { id: string; bill_id: string; ym: string; amount: num
 export type PocketAdjustment = { id: string; pocket_id: string; amount: number; note: string; adjusted_on: string }
 export type Recurring = { id: string; note: string; amount: number; category_label: string; pocket_id: string | null; day: number; start_ym: string; end_ym: string | null; skipped_ym: string[] }
 export type Split = { id: string; expense_id?: string | null; ym: string; split_on: string; name: string; amount: number; note: string }
+export type NeedItem = { id: string; category: string; name: string; est_price: number; qty: number; remind_day: number | null; budget_label: string; pocket_id: string | null }
+export type NeedPurchase = { id: string; item_id: string; ym: string; qty: number; unit_price: number; total: number; est_total: number; bought_on: string; expense_id: string | null }
 export type PocketView = Pocket & { saldo: number }
 
 export type MonthData = {

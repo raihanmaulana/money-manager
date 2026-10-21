@@ -687,3 +687,20 @@ body { background: var(--color-paper-2); }
 @media (max-width: 960px) { .calc-fab { top: auto; bottom: 5.5rem; transform: none; } .calc-panel { top: auto; bottom: 5.5rem; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .calc-fab { transition: none; } .calc-key:active { transform: none; } }
 .calc-head { cursor: grab; touch-action: none; user-select: none; } .calc-head:active { cursor: grabbing; }
+
+/* List Kebutuhan */
+.need-sum { padding: var(--space-5); }
+.need-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-4); }
+.need-stats > div { display: grid; gap: 2px; min-width: 0; }
+.need-stats b { font-size: var(--text-xl); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.need-stats small { color: var(--color-muted); font-size: var(--text-xs); }
+.need-stats .neg { color: var(--color-over-deep); } .need-stats .pos { color: var(--color-ok-ink); }
+.s7-col { grid-column: span 7; min-width: 0; }
+@media (max-width: 960px) { .need-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } .s7-col { grid-column: 1 / -1; } }
+.need-row.is-done .name { color: var(--color-muted); }
+.need-row .name { display: flex; align-items: center; gap: 6px; }
+.done-ic { color: var(--color-ok-ink); flex: none; }
+.need-chip { display: flex; width: fit-content; max-width: 100%; margin-top: 4px; white-space: normal; text-transform: none; letter-spacing: 0; }
+.buy-total { margin: 0; padding: var(--space-3); border-radius: var(--radius-field); background: var(--color-accent-soft); font-size: var(--text-sm); grid-column: 1 / -1; }
+.buy-total .neg { color: var(--color-over-deep); } .buy-total .pos { color: var(--color-ok-ink); }
+@media (max-width: 960px) { .need-sum, .need-alert { order: -3; } }
