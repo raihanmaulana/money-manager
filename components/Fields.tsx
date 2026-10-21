@@ -52,7 +52,7 @@ export function InlineField({ id, field, value, action, money = false, disabled,
 export function ActionButton({ action, args, label, icon = true, text, className = 'btn icon' }: {
   action: (...a: any[]) => Promise<void>; args: unknown[]; label: string; icon?: boolean; text?: string; className?: string
 }) {
-  const [pending, start] = useBusyTransition()
+  const [pending, start] = useBusyTransition(true)
   const toast = useToast()
   return (
     <button type="button" className={className} aria-label={label} title={label} aria-busy={pending} disabled={pending}
@@ -64,7 +64,7 @@ export function ActionButton({ action, args, label, icon = true, text, className
 
 export function Submit({ children, className = 'btn', pendingText = 'Menyimpan…' }: { children: ReactNode; className?: string; pendingText?: string }) {
   const { pending } = useFormStatus()
-  useBusyFlag(pending)
+  useBusyFlag(pending, true)
   return <button type="submit" className={className} aria-busy={pending} disabled={pending}>{pending ? pendingText : children}</button>
 }
 

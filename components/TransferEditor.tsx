@@ -12,7 +12,7 @@ import type { Pocket, Transfer } from '@/lib/types'
 /** Tombol pensil + popup untuk mengubah pindah dana (asal, tujuan, jumlah, biaya admin, tanggal, catatan). */
 export function TransferEditor({ transfer, pockets }: { transfer: Transfer; pockets: Pocket[] }) {
   const [open, setOpen] = useState(false)
-  const [pending, start] = useBusyTransition()
+  const [pending, start] = useBusyTransition(true)
   const toast = useToast()
   const opener = useRef<HTMLButtonElement>(null)
   const card = useRef<HTMLDivElement>(null)

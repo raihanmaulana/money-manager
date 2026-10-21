@@ -4,7 +4,7 @@ import { LoadingCard } from './LoadingCard'
 import { hueFor } from './nav-items'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from 'react'
 
-type Ctl = { inc: () => void; dec: () => void }
+type Ctl = { inc: (fast?: boolean) => void; dec: (fast?: boolean) => void }
 const Busy = createContext<Ctl>({ inc() {}, dec() {} })
 
 const SHOW_AFTER = 250 // ms: proses cepat tidak memunculkan popup (hindari berkedip)
@@ -12,17 +12,18 @@ const MIN_SHOW = 600 // ms: sekali muncul, tampil cukup lama agar tidak kelip
 
 export function BusyProvider({ children }: { children: ReactNode }) {
   const [count, setCount] = useState(0)
+  const [fast, setFast] = useState(0) // proses simpan/ubah/hapus: popup langsung muncul, tanpa menunggu
   const [visible, setVisible] = useState(false)
   const [pct, setPct] = useState(0)
   const path = usePathname()
   const shownAt = useRef(0)
-  const inc = useCallback(() => setCount((c) => c + 1), [])
-  const dec = useCallback(() => setCount((c) => Math.max(0, c - 1)), [])
+  const inc = useCallback((f?: boolean) => { setCount((c) => c + 1); if (f) setFast((n) => n + 1) }, [])
+  const dec = useCallback((f?: boolean) => { setCount((c) => Math.max(0, c - 1)); if (f) setFast((n) => Math.max(0, n - 1)) }, [])
   const ctl = useMemo(() => ({ inc, dec }), [inc, dec])
 
   useEffect(() => {
     if (count > 0 && !visible) {
-      const t = setTimeout(() => { shownAt.current = Date.now(); setPct(14); setVisible(true) }, SHOW_AFTER)
+      const t = setTimeout(() => { shownAt.current = Date.now(); setPct(14); setVisible(true) }, fast > 0 ? 0 : SHOW_AFTER)
       return () => clearTimeout(t)
     }
     if (count === 0 && visible) {
@@ -30,7 +31,7 @@ export function BusyProvider({ children }: { children: ReactNode }) {
       const t = setTimeout(() => setVisible(false), Math.max(380, MIN_SHOW - (Date.now() - shownAt.current)))
       return () => clearTimeout(t)
     }
-  }, [count, visible])
+  }, [count, visible, fast])
 
   // Selama proses berjalan, bar merayap pelan mendekati 92% (tidak pernah "bohong" mencapai 100% sebelum selesai).
   useEffect(() => {
@@ -57,23 +58,23 @@ export function BusyProvider({ children }: { children: ReactNode }) {
 export const useBusy = () => useContext(Busy)
 
 /** Pengganti useTransition: sambil berjalan, popup loading ikut muncul bila prosesnya lama. */
-export function useBusyTransition() {
+export function useBusyTransition(immediate = false) {
   const [pending, start] = useTransition()
   const { inc, dec } = useBusy()
   useEffect(() => {
     if (!pending) return
-    inc()
-    return () => dec()
-  }, [pending, inc, dec])
+    inc(immediate)
+    return () => dec(immediate)
+  }, [pending, inc, dec, immediate])
   return [pending, start] as const
 }
 
 /** Tandai sibuk selama `active` true (untuk form: useFormStatus / useActionState). */
-export function useBusyFlag(active: boolean) {
+export function useBusyFlag(active: boolean, immediate = false) {
   const { inc, dec } = useBusy()
   useEffect(() => {
     if (!active) return
-    inc()
-    return () => dec()
-  }, [active, inc, dec])
+    inc(immediate)
+    return () => dec(immediate)
+  }, [active, inc, dec, immediate])
 }

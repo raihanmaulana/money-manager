@@ -615,7 +615,7 @@ body { background: var(--color-paper-2); }
 }
 
 /* ---------- tampilan loading ---------- */
-.busy { position: fixed; inset: 0; z-index: var(--z-modal); display: grid; place-items: center; padding: var(--space-4); background: var(--color-scrim); animation: fade var(--dur-fast) var(--ease-out) both; }
+.busy { position: fixed; inset: 0; z-index: var(--z-busy); display: grid; place-items: center; padding: var(--space-4); background: var(--color-scrim); animation: fade var(--dur-fast) var(--ease-out) both; }
 .load-card { width: min(92vw, 380px); display: grid; gap: var(--space-5); padding: var(--space-5) var(--space-6); background: var(--color-surface); border: var(--rule-w) solid var(--page-mid); border-radius: var(--radius-card); box-shadow: var(--shadow-card); animation: pop var(--dur-med) var(--ease-out) both; }
 .page-loading .load-card { width: min(100%, 380px); }
 .load-head { display: flex; align-items: center; gap: var(--space-4); }
@@ -704,3 +704,10 @@ body { background: var(--color-paper-2); }
 .buy-total { margin: 0; padding: var(--space-3); border-radius: var(--radius-field); background: var(--color-accent-soft); font-size: var(--text-sm); grid-column: 1 / -1; }
 .buy-total .neg { color: var(--color-over-deep); } .buy-total .pos { color: var(--color-ok-ink); }
 @media (max-width: 960px) { .need-sum, .need-alert { order: -3; } }
+
+/* Isian kategori dengan pilihan */
+.combo { position: relative; }
+.combo .input { padding-right: 2.4rem; }
+.combo-btn { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); display: grid; place-items: center; width: 2rem; height: 2rem; border: 0; background: transparent; color: var(--color-muted); cursor: pointer; border-radius: var(--radius-sm); }
+.combo-btn:hover { background: var(--color-paper-2); }
+.ts-opt.combo-new { color: var(--color-accent-deep); cursor: default; font-weight: 600; }

@@ -13,7 +13,7 @@ import type { Expense, Pocket } from '@/lib/types'
 /** Tombol pensil + popup untuk mengubah catatan pengeluaran (jumlah, kategori, tanggal, sumber dana, catatan). */
 export function ExpenseEditor({ expense, cats, pockets }: { expense: Expense; cats: { id: string; label: string }[]; pockets: Pocket[] }) {
   const [open, setOpen] = useState(false)
-  const [pending, start] = useBusyTransition()
+  const [pending, start] = useBusyTransition(true)
   const toast = useToast()
   const opener = useRef<HTMLButtonElement>(null)
   const card = useRef<HTMLDivElement>(null)

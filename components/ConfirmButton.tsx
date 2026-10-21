@@ -10,7 +10,7 @@ export function ConfirmButton({ action, args, title, message, trigger, confirmTe
   action: (...a: any[]) => Promise<void>; args: unknown[]; title: string; message: string; trigger: string; confirmText?: string; className?: string
 }) {
   const [open, setOpen] = useState(false)
-  const [pending, start] = useBusyTransition()
+  const [pending, start] = useBusyTransition(true)
   const toast = useToast()
   const opener = useRef<HTMLButtonElement>(null)
   const cancel = useRef<HTMLButtonElement>(null)

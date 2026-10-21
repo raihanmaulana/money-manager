@@ -15,7 +15,7 @@ export function ModalForm({ trigger, triggerClass = 'btn small', title, intro, s
   const [pending, setPending] = useState(false)
   const opener = useRef<HTMLButtonElement>(null)
   const card = useRef<HTMLDivElement>(null)
-  useBusyFlag(pending)
+  useBusyFlag(pending, true)
   const toast = useToast()
   const close = () => { setOpen(false); setMsg(''); setSaved(false); opener.current?.focus() }
 

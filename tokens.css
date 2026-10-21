@@ -100,6 +100,7 @@
   --z-sticky: 20;
   --z-dropdown: 100;
   --z-modal: 110;
+  --z-busy: 150;
   --z-toast: 200;
 
   --shadow-card: 0 10px 24px -14px oklch(24% 0.02 258 / 0.16);

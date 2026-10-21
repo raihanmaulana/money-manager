@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { Check, Pencil } from 'lucide-react'
+import { CategoryCombo } from './CategoryCombo'
 import { ModalForm } from './ModalForm'
 import { MoneyInput } from './Fields'
 import { DatePicker } from './DatePicker'
@@ -13,12 +14,10 @@ const qtyText = (n: number) => String(n).replace('.', ',')
 
 /** Isian satu barang kebutuhan; dipakai untuk tambah (item kosong) dan ubah. */
 export function NeedFields({ item, categories, labels, pockets }: { item?: NeedItem; categories: string[]; labels: string[]; pockets: Pocket[] }) {
-  const listId = `cat-${item?.id ?? 'baru'}`
   return (
     <>
       <label className="field"><span>Kategori</span>
-        <input className="input" name="category" list={listId} maxLength={40} placeholder="mis. Kucing" defaultValue={item?.category ?? ''} required />
-        <datalist id={listId}>{categories.map((c) => <option key={c} value={c} />)}</datalist>
+        <CategoryCombo name="category" options={categories} defaultValue={item?.category ?? ''} placeholder="mis. Kucing" />
       </label>
       <label className="field"><span>Barang</span><input className="input" name="name" required maxLength={80} placeholder="mis. Makanan kucing" defaultValue={item?.name ?? ''} /></label>
       <label className="field"><span>Perkiraan harga (satuan)</span><MoneyInput name="est_price" label="Perkiraan harga satuan" defaultValue={item?.est_price ?? 0} /></label>
