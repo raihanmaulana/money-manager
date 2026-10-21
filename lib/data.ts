@@ -135,3 +135,10 @@ export async function prevMonthHasData(ctx: Ctx, prev: string): Promise<boolean>
   const { count } = await sb.from('income_items').select('id', { count: 'exact', head: true }).eq('owner_id', ctx.userId).eq('ym', prev)
   return !!count
 }
+
+export async function loadTelegram(ctx: Ctx): Promise<string | null> {
+  if (DEMO) return null
+  const sb = await supabaseServer()
+  const { data } = await sb.from('user_telegram').select('chat_id').eq('owner_id', ctx.userId).maybeSingle()
+  return (data?.chat_id as string | undefined) ?? null
+}

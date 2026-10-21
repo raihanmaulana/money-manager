@@ -6,6 +6,7 @@ import { isYm, planItems, ymAdd, ymLabel, ymOfDate } from './calc.ts'
 import { DEMO } from './data.ts'
 import { queryPockets } from './pockets.ts'
 import { supabaseServer } from './supabase/server.ts'
+import { sendTelegram } from './telegram.ts'
 import { fmtRp, fullSyncEvents, logEvent, pocketEvents, postEvents, queue, rowEvent, sheetsEnabled, summaryEvent, type SheetEvent, type Table } from './sheets.ts'
 
 const GRP = ['kebutuhan', 'gaya_hidup', 'tabungan', 'investasi'] as const
@@ -877,5 +878,23 @@ export async function unbuyNeed(purchaseId: string) {
   if (!p) return
   if (p.expense_id) await deleteExpense(p.expense_id as string)
   await c.sb.from('need_purchases').delete().eq('id', purchaseId).eq('owner_id', c.uid)
+  done()
+}
+
+// ---------- Pengingat Telegram ----------
+export async function saveTelegram(formData: FormData): Promise<string | void> {
+  const chat = text(formData.get('chat_id'), 24).replace(/\s/g, '')
+  if (!/^-?\d{5,20}$/.test(chat)) return 'Chat ID berupa angka, mis. 123456789.'
+  const c = await me()
+  if (!c) return done()
+  const err = await sendTelegram(chat, '✅ Arus terhubung. Pengingat kebutuhan akan dikirim ke chat ini.')
+  if (err) return `Pesan uji gagal: ${err} Pastikan kamu sudah menekan Start pada bot.`
+  await c.sb.from('user_telegram').upsert({ owner_id: c.uid, chat_id: chat, updated_at: new Date().toISOString() })
+  done()
+}
+export async function disconnectTelegram() {
+  const c = await me()
+  if (!c) return done()
+  await c.sb.from('user_telegram').delete().eq('owner_id', c.uid)
   done()
 }

@@ -33,3 +33,13 @@ Salin `google-apps-script/Code.gs` ke Apps Script, deploy sebagai Web app, lalu 
 
 ## Desain
 Tema *Cobalt* (modern-minimal): token di `app/tokens.css`, huruf Space Grotesk, Geist, dan JetBrains Mono.
+
+## Pengingat Telegram (opsional)
+
+Tiap pagi 08.00 WIB (Vercel Cron, `vercel.json`) bot mengirim kebutuhan yang waktunya dibeli tapi belum dibeli.
+
+1. Telegram → cari **@BotFather** → `/newbot` → salin **token**.
+2. Jalankan `supabase/tambah-telegram.sql` di Supabase SQL Editor.
+3. Vercel → Settings → Environment Variables: `TELEGRAM_BOT_TOKEN`, `CRON_SECRET` (string acak panjang), `SUPABASE_SERVICE_ROLE_KEY` (Supabase → Project Settings → API → *service_role*, rahasia, jangan diawali `NEXT_PUBLIC_`). Redeploy.
+4. Buka bot kamu di Telegram, tekan **Start**. Ambil Chat ID dari **@userinfobot**.
+5. Arus → Pengaturan → Pengingat Telegram → isi Chat ID → *Hubungkan dan kirim tes*.
