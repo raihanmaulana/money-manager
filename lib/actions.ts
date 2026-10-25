@@ -268,6 +268,22 @@ export async function setRowPocket(table: 'income_items' | 'goal_deposits', id: 
   await mirror(c, [{ table, id }], 'Ubah sumber dana', table === 'income_items' ? 'Pemasukan' : 'Setoran Tabungan', `${old.ym}: ${old.label ?? 'setoran'} → ${nm}`, table === 'income_items' ? [old.ym] : [])
   done()
 }
+/** Ubah sumber dana banyak catatan sekaligus. */
+export async function setExpensesPocket(ids: string[], value: string) {
+  const list = [...new Set((Array.isArray(ids) ? ids : []).filter((x) => typeof x === 'string'))].slice(0, 300)
+  if (!list.length) return
+  const c = await me()
+  if (!c) return done()
+  const fd = new FormData(); fd.set('p', value)
+  const pocket_id = await pocketOf(c, fd.get('p'))
+  const { data: rows } = await c.sb.from('expenses').select('id,ym').in('id', list).eq('owner_id', c.uid).is('transfer_id', null)
+  const ok = (rows ?? []).map((r) => r.id as string)
+  if (!ok.length) return done()
+  await c.sb.from('expenses').update({ pocket_id }).in('id', ok).eq('owner_id', c.uid)
+  const nm = pocket_id ? ((await c.sb.from('pockets').select('name').eq('id', pocket_id).maybeSingle()).data?.name as string) ?? '' : 'tanpa sumber dana'
+  await mirror(c, ok.map((id) => ({ table: 'expenses' as Table, id })), 'Ubah sumber dana', 'Catatan', `${ok.length} catatan → ${nm}`, [...new Set((rows ?? []).map((r) => r.ym as string))])
+  done()
+}
 export async function deleteExpense(id: string) {
   const c = await me()
   if (!c) return done()
