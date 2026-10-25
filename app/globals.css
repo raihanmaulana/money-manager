@@ -717,3 +717,32 @@ body { background: var(--color-paper-2); }
 .dp-lock:hover { border-color: var(--color-muted); }
 .dp-lock.on { background: var(--color-accent-soft); border-color: var(--color-accent); color: var(--page-ink, var(--color-ink)); font-weight: 600; }
 .dp-lock:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+
+/* Sumber dana bermerek */
+.pa { display: inline-grid; place-items: center; flex: none; border-radius: 50%; font-family: var(--font-mono); font-weight: 700; letter-spacing: 0; line-height: 1; background: var(--brand-ink); color: var(--brand-ink); }
+.pa-none { background: var(--brand-neutral); color: var(--brand-neutral-ink); }
+.pa-bca { background: var(--brand-bca); color: var(--brand-ink); }
+.pa-bri { background: var(--brand-bri); color: var(--brand-ink); }
+.pa-bni { background: var(--brand-bni); color: var(--brand-ink); }
+.pa-mandiri { background: var(--brand-mandiri); color: var(--brand-mandiri-ink); }
+.pa-cimb { background: var(--brand-cimb); color: var(--brand-ink); }
+.pa-jago { background: var(--brand-jago); color: var(--brand-jago-ink); }
+.pa-seabank { background: var(--brand-seabank); color: var(--brand-ink); }
+.pa-jenius { background: var(--brand-jenius); color: var(--brand-ink); }
+.pa-btn { background: var(--brand-btn); color: var(--brand-btn-ink); }
+.pa-permata { background: var(--brand-permata); color: var(--brand-ink); }
+.pa-gopay { background: var(--brand-gopay); color: var(--brand-ink); }
+.pa-ovo { background: var(--brand-ovo); color: var(--brand-ink); }
+.pa-dana { background: var(--brand-dana); color: var(--brand-ink); }
+.pa-shopeepay { background: var(--brand-shopeepay); color: var(--brand-ink); }
+.pa-linkaja { background: var(--brand-linkaja); color: var(--brand-ink); }
+.pp { display: grid; grid-template-columns: repeat(auto-fill, minmax(8.8rem, 1fr)); gap: var(--space-2); }
+.pp-opt { position: relative; display: flex; align-items: center; gap: var(--space-3); padding: var(--space-2) var(--space-3); min-width: 0; text-align: left; font: inherit; color: inherit; cursor: pointer; background: var(--color-surface); border: var(--rule-w) solid var(--color-rule); border-radius: var(--radius-field); transition: border-color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out); }
+.pp-opt:hover { border-color: var(--color-muted); transform: translateY(-1px); }
+.pp-opt:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+.pp-opt.on { border-color: var(--color-accent); background: var(--color-accent-soft); box-shadow: 0 0 0 1px var(--color-accent) inset; }
+.pp-txt { display: grid; min-width: 0; line-height: 1.25; padding-right: 14px; }
+.pp-txt b { font-size: var(--text-sm); font-weight: 600; overflow-wrap: anywhere; }
+.pp-txt small { font-size: var(--text-xs); color: var(--color-muted); }
+.pp-check { position: absolute; top: 6px; right: 6px; color: var(--color-accent-deep); }
+@media (prefers-reduced-motion: reduce) { .pp-opt { transition: none; } .pp-opt:hover { transform: none; } }

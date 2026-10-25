@@ -6,6 +6,7 @@ import { useBusyTransition } from './Busy'
 import { useToast } from './Toast'
 import { MoneyInput } from './Fields'
 import { SplitFields } from './SplitFields'
+import { PocketSelect } from './PocketSelect'
 import { DatePicker } from './DatePicker'
 import { updateExpense } from '@/lib/actions'
 import type { Expense, Pocket } from '@/lib/types'
@@ -55,14 +56,7 @@ export function ExpenseEditor({ expense, cats, pockets }: { expense: Expense; ca
                   </select>
                 </label>
                 <label className="field"><span>Tanggal</span><DatePicker name="spent_on" label="Tanggal" defaultValue={expense.spent_on} inModal /></label>
-                {pockets.length ? (
-                  <label className="field full"><span>Sumber dana</span>
-                    <select className="select" name="pocket_id" defaultValue={expense.pocket_id ?? ''}>
-                      <option value="">Tanpa sumber dana</option>
-                      {pockets.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-                    </select>
-                  </label>
-                ) : null}
+                <PocketSelect pockets={pockets} full defaultValue={expense.pocket_id ?? ''} />
                 <label className="field full"><span>Catatan</span><input className="input" name="note" maxLength={120} defaultValue={expense.note} /></label>
                 <SplitFields />
               </div>

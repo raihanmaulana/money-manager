@@ -96,6 +96,12 @@
   --dur-long: 420ms;
 
   /* z */
+  /* Warna merek bank dan e-wallet untuk penanda sumber dana (bukan logo asli, hanya warna + singkatan) */
+  --brand-bca: #0b63b6; --brand-bri: #0a4fa3; --brand-bni: #ee6a1f; --brand-mandiri: #0b3a74; --brand-mandiri-ink: #ffc20e;
+  --brand-cimb: #8a0f27; --brand-jago: #ffb800; --brand-jago-ink: #2a2200; --brand-seabank: #ff6a1a; --brand-jenius: #0aa5df;
+  --brand-btn: #f0a30a; --brand-btn-ink: #2a2200; --brand-permata: #12935a; --brand-blu: #0a6bff;
+  --brand-gopay: #0fa626; --brand-ovo: #4b2a8c; --brand-dana: #1486ea; --brand-shopeepay: #ee4d2d; --brand-linkaja: #e0262b;
+  --brand-neutral: var(--color-paper-3); --brand-neutral-ink: var(--color-ink-2); --brand-ink: #ffffff;
   --z-raised: 10;
   --z-sticky: 20;
   --z-dropdown: 100;

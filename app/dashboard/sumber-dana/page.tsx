@@ -1,4 +1,5 @@
 import { ArrowLeftRight, Scale, Banknote, Landmark, Plus, Smartphone, Wallet, History, Coins } from 'lucide-react'
+import { PocketAvatar } from '@/components/PocketAvatar'
 import { TileTitle } from '@/components/TileTitle'
 import { getCtx, loadPockets } from '@/lib/data'
 import { rp } from '@/lib/calc'
@@ -68,7 +69,7 @@ export default async function SumberDana() {
           return (
             <section key={p.id} className="tile s4" style={{ ['--i' as string]: i++ }} aria-labelledby={`p-${p.id}`}>
               <div className="tile-head">
-                <TileTitle id={`p-${p.id}`} icon={Icon}>{p.name}</TileTitle>
+                <TileTitle id={`p-${p.id}`} icon={Icon} lead={<PocketAvatar name={p.name} kind={p.kind} size={34} />}>{p.name}</TileTitle>
                 <span className="chip">{label}</span>
               </div>
               <p className="big" style={{ fontSize: '2.1rem' }}>{rp(p.saldo)}</p>
