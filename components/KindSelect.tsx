@@ -6,7 +6,7 @@ const KINDS = [['bank', 'Bank'], ['ewallet', 'E-wallet'], ['tunai', 'Tunai'], ['
 
 /** Ganti jenis sumber dana (bank / e-wallet / tunai) langsung dari kartunya. */
 export function KindSelect({ id, value, action }: { id: string; value: string; action: (id: string, field: any, value: string) => Promise<void> }) {
-  const [pending, start] = useBusyTransition()
+  const [pending, start] = useBusyTransition(true)
   const toast = useToast()
   return (
     <select className="select pocket-inline" aria-label="Jenis sumber dana" aria-busy={pending} disabled={pending} value={value}

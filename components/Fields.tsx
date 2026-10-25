@@ -32,7 +32,7 @@ export function InlineField({ id, field, value, action, money = false, disabled,
   const initial = money ? fmt(String(value)) : String(value)
   const [v, setV] = useState(initial)
   const [saved, setSaved] = useState(initial)
-  const [pending, start] = useBusyTransition()
+  const [pending, start] = useBusyTransition(true)
   const toast = useToast()
   const commit = () => {
     if (v === saved) return
@@ -98,7 +98,7 @@ export function Toggle({ checked, label, action, args, disabled }: {
   checked: boolean; label: string; action: (...a: any[]) => Promise<void>; args: unknown[]; disabled?: boolean
 }) {
   const [on, setOn] = useState(checked)
-  const [, start] = useBusyTransition()
+  const [, start] = useBusyTransition(true)
   return (
     <input type="checkbox" className="check" aria-label={label} checked={on} disabled={disabled}
       onChange={(e) => { const n = e.target.checked; setOn(n); start(() => action(...args, n)) }} />

@@ -8,7 +8,7 @@ export function PocketInline({ table, id, value, pockets, action }: {
   table: string; id: string; value?: string | null; pockets: Pocket[]
   action: (table: any, id: string, field: string, value: string) => Promise<void>
 }) {
-  const [pending, start] = useBusyTransition()
+  const [pending, start] = useBusyTransition(true)
   const toast = useToast()
   return (
     <select className="select pocket-inline" aria-label="Sumber dana" aria-busy={pending} disabled={pending} value={value ?? ''}
