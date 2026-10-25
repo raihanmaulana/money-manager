@@ -757,3 +757,16 @@ a.debt-card:hover { border-color: var(--page-ink, var(--color-accent)); }
 a.debt-card:focus-visible { outline: 2px solid var(--page-ink, var(--color-accent)); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) { a.debt-card { transition: none; } }
 .table-wrap { overflow-x: auto; max-width: 100%; }
+
+/* Pemilih file */
+.file-drop { position: relative; display: flex; align-items: center; gap: var(--space-3); padding: var(--space-4); border: 1.5px dashed var(--color-rule); border-radius: var(--radius-card); background: var(--color-paper-2); color: var(--color-ink-2); cursor: pointer; transition: border-color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out); }
+.file-drop:hover, .file-drop.over { border-color: var(--page-ink, var(--color-accent)); background: var(--page-soft, var(--color-paper-3)); }
+.file-drop:focus-within { outline: 2px solid var(--page-ink, var(--color-accent)); outline-offset: 2px; }
+.file-drop.has { border-style: solid; color: var(--page-ink, var(--color-ink)); }
+.file-drop > svg { flex: none; color: var(--page-ink, var(--color-accent)); }
+.file-input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; font-size: 0; }
+.file-text { display: grid; gap: 2px; min-width: 0; flex: 1; }
+.file-text b { color: var(--color-ink); overflow-wrap: anywhere; }
+.file-text small { color: var(--color-muted); font-size: 0.82rem; }
+.file-drop .btn { position: relative; z-index: 1; }
+@media (prefers-reduced-motion: reduce) { .file-drop { transition: none; } }
