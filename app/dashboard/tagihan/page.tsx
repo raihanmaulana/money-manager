@@ -3,9 +3,10 @@ import { Download, CalendarClock, CreditCard, HandCoins, ListChecks, Plus, Recei
 import { getCtx, loadMonth, loadPockets } from '@/lib/data'
 import { billRowsFor, rp, summarize, ymLabel } from '@/lib/calc'
 import { BillKindFields } from '@/components/BillKindFields'
-import { addBill, changeBillFrom, deleteBill, deleteBillPayment, payBill, setBillMin, setBillAmountThisMonth, setBillSkipped, stopBill, undoBillPaid } from '@/lib/actions'
+import { addBill, changeBillFrom, deleteBill, deleteBillPayment, payBill, setBillCardPocket, setBillMin, setBillAmountThisMonth, setBillSkipped, stopBill, undoBillPaid } from '@/lib/actions'
 import { ModalForm } from '@/components/ModalForm'
 import { DatePicker } from '@/components/DatePicker'
+import { PocketInline } from '@/components/PocketInline'
 import { PocketSelect } from '@/components/PocketSelect'
 import { ConfirmButton } from '@/components/ConfirmButton'
 import { PageHead } from '@/components/PageHead'
@@ -19,6 +20,8 @@ const KIND_ICON = { tagihan: Receipt, cicilan: Repeat, hutang: HandCoins, kartu:
 export default async function Tagihan() {
   const ctx = await getCtx()
   const [data, { pockets }] = await Promise.all([loadMonth(ctx), loadPockets(ctx)])
+  const spendable = pockets.filter((p) => p.kind !== 'kredit')
+  const cards = pockets.filter((p) => p.kind === 'kredit')
   const pname = (id: string | null) => pockets.find((p) => p.id === id)?.name
   const rows = billRowsFor(data.bills, data.billMonths, ctx.ym)
   const s = summarize(data.income, data.budget, data.expenses, rows, ctx.today, ctx.ym)
@@ -52,7 +55,7 @@ export default async function Tagihan() {
             <QuickForm action={addBill} className="stack">
               <div className="form-grid">
                 <label className="field full"><span>Nama</span><input className="input" name="name" required maxLength={80} placeholder="mis. Cicilan HP atau Pinjam ke teman" /></label>
-                <BillKindFields />
+                <BillKindFields cards={cards.map((c) => ({ id: c.id, name: c.name }))} />
                 <label className="field"><span>Jatuh tempo (tanggal)</span><input className="input" type="number" name="due_day" min={1} max={31} defaultValue={1} required /></label>
                 <label className="field"><span>Mulai bulan</span><input className="input" type="month" name="start_ym" defaultValue={ctx.ym} required pattern="\d{4}-\d{2}" /></label>
                 <label className="field"><span>Berapa bulan?</span><input className="input" type="number" name="months" min={1} max={120} placeholder="kosong = terus" /></label>
@@ -139,6 +142,12 @@ export default async function Tagihan() {
                                 <span style={{ width: '9.5rem' }}><InlineField id={r.bill.id} field="min_payment" value={r.bill.min_payment ?? 0} money action={setBillMin} label="Pembayaran minimum" /></span>
                               </div>
                             ) : null}
+                            {r.isCard && cards.length ? (
+                              <div className="cluster">
+                                <span className="hint">Kartu kredit</span>
+                                <PocketInline table="bills" id={r.bill.id} value={r.bill.card_pocket_id} pockets={cards} action={setBillCardPocket} label="Sumber dana kartu kredit" emptyLabel="Tidak terhubung" />
+                              </div>
+                            ) : null}
                             <QuickForm action={changeBillFrom} className="cluster" resetOnDone={false}>
                               <input type="hidden" name="bill_id" value={r.bill.id} /><input type="hidden" name="ym" value={ctx.ym} />
                               <MoneyInput name="amount" defaultValue={r.bill.amount} label="Nominal baru" />
@@ -170,7 +179,7 @@ export default async function Tagihan() {
                             intro={<>Sisa bulan ini <b>{rp(r.amount - r.paidAmount)}</b>{r.minPayment > 0 && !r.minMet ? <>, minimum <b>{rp(r.minPayment - r.paidAmount)}</b> lagi</> : null}.</>}>
                             <input type="hidden" name="bill_id" value={r.bill.id} /><input type="hidden" name="ym" value={ctx.ym} />
                             <label className="field full"><span>Nominal dibayar</span><MoneyInput name="amount" label="Nominal dibayar" defaultValue={r.amount - r.paidAmount} required /></label>
-                            <PocketSelect pockets={pockets} label="Dibayar dari" />
+                            <PocketSelect pockets={spendable} label="Dibayar dari" />
                             <label className="field"><span>Tanggal bayar</span><DatePicker name="paid_on" label="Tanggal bayar" defaultValue={ctx.today.iso} inModal /></label>
                           </ModalForm>
                         )

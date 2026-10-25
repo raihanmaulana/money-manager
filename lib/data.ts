@@ -49,7 +49,7 @@ export async function loadMonth(ctx: Ctx): Promise<MonthData> {
       ym,
       income: ym >= '2026-10' ? demo.demoIncome(ym) : [],
       budget: ym >= '2026-10' ? demo.demoBudget(ym) : [],
-      expenses: ym === '2026-10' ? demo.demoExpenses(ym) : [],
+      expenses: ym === '2026-10' ? demo.demoExpenses(ym).map((e) => ({ ...e, credit: e.pocket_id === 'p5' })) : [],
       bills: demo.demoBills,
       billMonths: demo.demoBillMonths,
       payments: demo.demoPayments.filter((p) => p.ym === ym),
@@ -58,14 +58,16 @@ export async function loadMonth(ctx: Ctx): Promise<MonthData> {
   const sb = await supabaseServer()
   const o = ctx.userId
   await ensureRecurring(sb, o, ym, ctx.today.iso, ctx.email)
-  const [inc, bud, exp, bills, bms, pays] = await Promise.all([
+  const [inc, bud, exp, bills, bms, pays, creditP] = await Promise.all([
     sb.from('income_items').select('*').eq('owner_id', o).eq('ym', ym).order('sort').order('label'),
     sb.from('budget_items').select('*').eq('owner_id', o).eq('ym', ym).order('sort').order('label'),
     sb.from('expenses').select('*').eq('owner_id', o).eq('ym', ym).order('spent_on', { ascending: false }).order('created_at', { ascending: false }),
     sb.from('bills').select('*').eq('owner_id', o).order('due_day'),
     sb.from('bill_months').select('*').eq('owner_id', o).eq('ym', ym),
     sb.from('bill_payments').select('*').eq('owner_id', o).eq('ym', ym).order('paid_on').order('created_at'),
+    sb.from('pockets').select('id').eq('owner_id', o).eq('kind', 'kredit'),
   ])
+  const credit = new Set((creditP.data ?? []).map((x) => x.id as string))
   // Kartu kredit membawa sisa tagihan antarbulan, jadi butuh status bulan-bulan sebelumnya juga.
   const cardIds = (bills.data ?? []).filter((b) => b.kind === 'kartu').map((b) => b.id as string)
   const older = cardIds.length ? (await sb.from('bill_months').select('*').eq('owner_id', o).in('bill_id', cardIds).lt('ym', ym)).data ?? [] : []
@@ -73,7 +75,7 @@ export async function loadMonth(ctx: Ctx): Promise<MonthData> {
     ym,
     income: (inc.data ?? []).map((r) => ({ ...r, amount: num(r.amount) })) as IncomeItem[],
     budget: (bud.data ?? []).map((r) => ({ ...r, amount: num(r.amount) })) as BudgetItem[],
-    expenses: (exp.data ?? []).map((r) => ({ ...r, amount: num(r.amount) })) as Expense[],
+    expenses: (exp.data ?? []).map((r) => ({ ...r, amount: num(r.amount), credit: !!r.pocket_id && credit.has(r.pocket_id as string) })) as Expense[],
     bills: (bills.data ?? []).map((r) => ({ ...r, amount: num(r.amount), min_payment: num(r.min_payment ?? 0) })) as Bill[],
     billMonths: [...(bms.data ?? []), ...older].map((r) => ({ ...r, amount_override: r.amount_override == null ? null : num(r.amount_override), paid_amount: num(r.paid_amount ?? 0) })) as BillMonth[],
     payments: (pays.data ?? []).map((r) => ({ ...r, amount: num(r.amount) })) as BillPayment[],
@@ -97,7 +99,7 @@ export async function loadGoals(ctx: Ctx): Promise<{ goals: Goal[]; deposits: Go
 export async function loadPockets(ctx: Ctx): Promise<{ pockets: PocketView[]; transfers: Transfer[]; adjustments: PocketAdjustment[] }> {
   if (DEMO) {
     const transfers = demo.demoTransfers
-    return { pockets: pocketBalances(demo.demoPockets, demo.demoIncome('2026-10'), demo.demoExpenses('2026-10'), demo.demoDeposits, transfers, ctx.today, demo.demoPayments, []), transfers, adjustments: [] }
+    return { pockets: pocketBalances(demo.demoPockets, demo.demoIncome('2026-10'), demo.demoExpenses('2026-10'), demo.demoDeposits, transfers, ctx.today, demo.demoPayments, [], demo.demoPayments.filter((x) => x.bill_id === 'l5').map((x) => ({ paid_on: x.paid_on, amount: x.amount, card_pocket_id: 'p5' }))), transfers, adjustments: [] }
   }
   return queryPockets(await supabaseServer(), ctx.userId, ctx.today)
 }

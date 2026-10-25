@@ -142,9 +142,11 @@ export function summarize(
   for (const b of budget) grp[b.grp] += b.amount
   const uangBelanja = bersih - tagihan - grp.tabungan - grp.investasi
   const rencanaBelanja = grp.kebutuhan + grp.gaya_hidup
-  const spent = expenses.reduce((s, e) => s + e.amount, 0)
+  // Belanja pakai kartu kredit tidak masuk anggaran; yang dihitung saat tagihan kartunya dibayar.
+  const own = expenses.filter((e) => !e.credit)
+  const spent = own.reduce((s, e) => s + e.amount, 0)
   const spentByItem: Record<string, number> = {}
-  for (const e of expenses) if (e.budget_item_id) spentByItem[e.budget_item_id] = (spentByItem[e.budget_item_id] ?? 0) + e.amount
+  for (const e of own) if (e.budget_item_id) spentByItem[e.budget_item_id] = (spentByItem[e.budget_item_id] ?? 0) + e.amount
   const sisaJatah = uangBelanja - spent
 
   let hariSisa = 0
@@ -223,14 +225,17 @@ export function pocketBalances(
   today: { ym: string; iso: string },
   payments: { paid_on: string; amount: number; pocket_id?: string | null }[] = [],
   adjustments: { adjusted_on: string; amount: number; pocket_id?: string | null }[] = [],
+  cardPays: { paid_on: string; amount: number; card_pocket_id: string }[] = [], // pembayaran tagihan kartu: memulihkan limit kartunya
 ): PocketView[] {
-  const bal = new Map<string, number>(pockets.map((p) => [p.id, p.opening_balance]))
+  // Kartu kredit: saldo = −terpakai (opening_balance = terpakai awal)
+  const bal = new Map<string, number>(pockets.map((p) => [p.id, p.kind === 'kredit' ? -p.opening_balance : p.opening_balance]))
   const add = (id: string | null | undefined, n: number) => { if (id && bal.has(id)) bal.set(id, bal.get(id)! + n) }
   for (const i of income) if (i.ym <= today.ym) add(i.pocket_id, i.kind === 'masuk' ? i.amount : -i.amount)
   for (const e of expenses) if (e.spent_on <= today.iso) add(e.pocket_id, -e.amount)
   for (const d of deposits) if (d.ym <= today.ym) add(d.pocket_id, -d.amount)
   for (const p of payments) if (p.paid_on <= today.iso) add(p.pocket_id, -p.amount)
   for (const a of adjustments) if (a.adjusted_on <= today.iso) add(a.pocket_id, a.amount)
+  for (const c of cardPays) if (c.paid_on <= today.iso) add(c.card_pocket_id, c.amount)
   for (const t of transfers) if (t.moved_on <= today.iso) { add(t.from_pocket, -(t.amount + (t.fee ?? 0))); add(t.to_pocket, t.amount) }
   return pockets.map((p) => ({ ...p, saldo: bal.get(p.id) ?? 0 }))
 }

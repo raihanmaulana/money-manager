@@ -61,7 +61,7 @@ export default async function Beranda() {
       else if (gap <= 3) alerts.push({ tone: 'warn', text: `${r.bill.name} jatuh tempo ${gap === 0 ? 'hari ini' : gap === 1 ? 'besok' : `${gap} hari lagi`} (sisa ${sisa})`, href: '/dashboard/tagihan' })
     }
   }
-  for (const p of pockets) if (p.saldo < 0) alerts.push({ tone: 'over', text: `Saldo ${p.name} minus ${rp(-p.saldo)}`, href: '/dashboard/sumber-dana' })
+  for (const p of pockets) if (p.kind === 'kredit') { if ((p.credit_limit ?? 0) > 0 && -p.saldo > (p.credit_limit ?? 0)) alerts.push({ tone: 'over', text: `Pemakaian ${p.name} melebihi limit ${rp(-p.saldo - (p.credit_limit ?? 0))}`, href: '/dashboard/sumber-dana' }) } else if (p.saldo < 0) alerts.push({ tone: 'over', text: `Saldo ${p.name} minus ${rp(-p.saldo)}`, href: '/dashboard/sumber-dana' })
   if (s.uangBelanja > 0 && s.sisaJatah < 0) alerts.push({ tone: 'over', text: `Jatah belanja sudah terlewat ${rp(-s.sisaJatah)}`, href: '/dashboard/catatan' })
   else if (s.uangBelanja > 0 && s.sisaJatah / s.uangBelanja < 0.15) alerts.push({ tone: 'warn', text: `Jatah belanja tinggal ${Math.round((s.sisaJatah / s.uangBelanja) * 100)}% (${rp(s.sisaJatah)})`, href: '/dashboard/catatan' })
   if (nowMonth) {
@@ -71,6 +71,7 @@ export default async function Beranda() {
   }
   const sliceMap = new Map<string, Slice>()
   for (const e of data.expenses) {
+    if (e.credit) continue
     const key = e.budget_item_id ?? '__none'
     const name = e.budget_item_id ? (data.budget.find((b) => b.id === e.budget_item_id)?.label ?? 'Tanpa kategori') : 'Tanpa kategori'
     const cur = sliceMap.get(key) ?? { key, name, amount: 0, count: 0 }

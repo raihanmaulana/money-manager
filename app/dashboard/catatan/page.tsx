@@ -26,7 +26,7 @@ export default async function Catatan() {
   }
   const pos = data.budget.filter((b) => b.grp === 'kebutuhan' || b.grp === 'gaya_hidup')
   const defDate = ctx.ym === ctx.today.ym ? ctx.today.iso : `${ctx.ym}-01`
-  const noPos = data.expenses.filter((e) => !e.budget_item_id).reduce((t, e) => t + e.amount, 0)
+  const noPos = data.expenses.filter((e) => !e.budget_item_id && !e.credit).reduce((t, e) => t + e.amount, 0)
 
   return (
     <>

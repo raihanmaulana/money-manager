@@ -122,12 +122,12 @@ export default async function Laporan() {
           </section>
         ) : null}
 
-        {pockets.length ? (
+        {pockets.some((p) => p.kind !== 'kredit') ? (
           <section className="rpt-sec">
             <h2>Saldo sumber dana <small>per hari ini</small></h2>
             <table className="report-table">
-              <tbody>{pockets.map((p) => <tr key={p.id}><td>{p.name}</td><td className="r">{rp(p.saldo)}</td></tr>)}</tbody>
-              <tfoot><tr className="total"><td>Total</td><td className="r">{rp(pockets.reduce((t, p) => t + p.saldo, 0))}</td></tr></tfoot>
+              <tbody>{pockets.filter((p) => p.kind !== 'kredit').map((p) => <tr key={p.id}><td>{p.name}</td><td className="r">{rp(p.saldo)}</td></tr>)}</tbody>
+              <tfoot><tr className="total"><td>Total</td><td className="r">{rp(pockets.filter((p) => p.kind !== 'kredit').reduce((t, p) => t + p.saldo, 0))}</td></tr></tfoot>
             </table>
           </section>
         ) : null}

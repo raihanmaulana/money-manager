@@ -24,13 +24,13 @@ export const demoExpenses = (ym: string): Expense[] => [
   { id: 'e2', ym, spent_on: `${ym}-02`, budget_item_id: 'b2', note: 'Ojek online', pocket_id: 'p3', amount: 25_000 },
   { id: 'e3', ym, spent_on: `${ym}-04`, budget_item_id: 'b4', note: 'Kopi sore', pocket_id: 'p3', amount: 28_000 },
   { id: 'e4', ym, spent_on: `${ym}-07`, budget_item_id: 'b5', note: 'Skincare', pocket_id: 'p2', amount: 120_000 },
-  { id: 'e5', ym, spent_on: `${ym}-08`, budget_item_id: 'b1', note: 'Makan malam bareng teman', pocket_id: 'p3', amount: 85_000 },
+  { id: 'e5', ym, spent_on: `${ym}-08`, budget_item_id: 'b1', note: 'Makan malam bareng teman', pocket_id: 'p5', amount: 85_000 },
 ]
 export const demoBills: Bill[] = [
   { id: 'l1', name: 'Wifi kos', kind: 'tagihan', amount: 150_000, due_day: 5, start_ym: '2026-10', end_ym: null, note: '' },
   { id: 'l2', name: 'Pulsa / paket data', kind: 'tagihan', amount: 100_000, due_day: 12, start_ym: '2026-10', end_ym: null, note: '' },
   { id: 'l3', name: 'Cicilan HP', kind: 'cicilan', amount: 450_000, due_day: 20, start_ym: '2026-08', end_ym: '2027-01', note: '' },
-  { id: 'l5', name: 'Kartu kredit BCA', kind: 'kartu', amount: 1_850_000, due_day: 17, start_ym: '2026-10', end_ym: null, note: '', min_payment: 185_000 },
+  { id: 'l5', name: 'Kartu kredit BCA', kind: 'kartu', amount: 1_850_000, due_day: 17, start_ym: '2026-10', end_ym: null, note: '', min_payment: 185_000, card_pocket_id: 'p5' },
   { id: 'l4', name: 'Pinjam ke teman', kind: 'hutang', amount: 200_000, due_day: 28, start_ym: '2026-10', end_ym: '2026-12', note: 'Untuk laptop' },
 ]
 export const demoBillMonths: BillMonth[] = [
@@ -51,6 +51,7 @@ export const demoPockets: Pocket[] = [
   { id: 'p2', name: 'GoPay', kind: 'ewallet', opening_balance: 50_000, sort: 1 },
   { id: 'p3', name: 'ShopeePay', kind: 'ewallet', opening_balance: 0, sort: 2 },
   { id: 'p4', name: 'Dompet tunai', kind: 'tunai', opening_balance: 150_000, sort: 3 },
+  { id: 'p5', name: 'BRI CC', kind: 'kredit', opening_balance: 1_200_000, sort: 4, credit_limit: 5_000_000 },
 ]
 export const demoTransfers: Transfer[] = [
   { id: 't1', from_pocket: 'p1', to_pocket: 'p3', amount: 300_000, fee: 2_500, moved_on: '2026-10-03', note: 'Isi saldo untuk jajan' },

@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { ChevronDown, Filter, FilterX, Search, Users } from 'lucide-react'
+import { ChevronDown, Filter, FilterX, Search, Users, CreditCard } from 'lucide-react'
 import { ThemedSelect } from './ThemedSelect'
 import { ActionButton } from './Fields'
 import { ExpenseEditor } from './ExpenseEditor'
@@ -50,7 +50,7 @@ export function ExpenseList({ expenses, cats, pockets, days, splits = [] }: {
 
   const byDay = new Map<string, Expense[]>()
   for (const e of shown) byDay.set(e.spent_on, [...(byDay.get(e.spent_on) ?? []), e])
-  const total = shown.reduce((t, e) => t + e.amount, 0)
+  const total = shown.reduce((t, e) => t + (e.credit ? 0 : e.amount), 0)
   const nActive = [dayR, amtR, cat, pocket].filter(Boolean).length
   const closeModal = () => { setOpen(false); opener.current?.focus() }
 
@@ -122,13 +122,14 @@ export function ExpenseList({ expenses, cats, pockets, days, splits = [] }: {
             <span className="day-badge" aria-hidden><b>{Number(day.slice(8, 10))}</b><i>{new Date(day + 'T00:00:00Z').toLocaleDateString('id-ID', { weekday: 'short', timeZone: 'UTC' })}</i></span>
             <span className="day-title"><b>{tgl(day)}</b><span>{list.length} catatan</span></span>
             <span className="day-line" aria-hidden />
-            <span className="day-total">{rp(list.reduce((t, e) => t + e.amount, 0))}</span>
+            <span className="day-total">{rp(list.reduce((t, e) => t + (e.credit ? 0 : e.amount), 0))}</span>
           </div>
           <ul className="rows">
             {list.map((e) => (
               <li key={e.id}>
                 <span className="grow"><span className="name">{e.note || label(e.budget_item_id) || 'Pengeluaran'}</span>
                   {label(e.budget_item_id) || pk(e.pocket_id) || e.transfer_id || e.recurring_id ? <span className="meta">{[label(e.budget_item_id), pk(e.pocket_id), e.recurring_id ? 'Berulang' : '', e.transfer_id ? 'Otomatis dari Pindah dana (hapus lewat halaman Sumber dana)' : ''].filter(Boolean).join(' · ')}</span> : null}
+                  {e.credit ? <span className="chip" title="Dibayar lewat kartu kredit, masuk anggaran saat tagihan kartu dibayar"><CreditCard aria-hidden size={12} /> Kartu kredit · tidak masuk anggaran</span> : null}
                   {(() => { const sp = splits.filter((x) => x.expense_id === e.id); return sp.length ? <span className="chip split-chip" title={sp.map((x) => `${x.name} ${rp(x.amount)}`).join(', ')}><Users aria-hidden size={12} /> Split bill · {sp.map((x) => `${x.name} ${rp(x.amount)}`).join(', ')}</span> : null })()}
                 </span>
                 <span className="amt">{rp(e.amount)}</span>

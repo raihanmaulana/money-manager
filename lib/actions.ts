@@ -11,7 +11,7 @@ import { fmtRp, fullSyncEvents, logEvent, pocketEvents, postEvents, queue, rowEv
 
 const GRP = ['kebutuhan', 'gaya_hidup', 'tabungan', 'investasi'] as const
 const KINDS = ['tagihan', 'cicilan', 'hutang', 'kartu'] as const
-const POCKET_KINDS = ['bank', 'ewallet', 'tunai', 'lainnya'] as const
+const POCKET_KINDS = ['bank', 'ewallet', 'tunai', 'lainnya', 'kredit'] as const
 
 const money = (v: FormDataEntryValue | string | number | null | undefined) => {
   const n = Number(String(v ?? '').replace(/[^\d]/g, ''))
@@ -60,6 +60,11 @@ async function lowBalance(c: C, pocketId: string | null | undefined): Promise<st
   try {
     const { pockets } = await queryPockets(c.sb, c.uid, ymOfDate(new Date()))
     const p = pockets.find((x) => x.id === pocketId)
+    if (p?.kind === 'kredit') {
+      const used = -p.saldo, lim = p.credit_limit ?? 0
+      if (lim > 0 && used > lim) return `⚠ Tersimpan, tapi pemakaian ${p.name} ${fmtRp(used)} melebihi limit ${fmtRp(lim)} (lebih ${fmtRp(used - lim)}).`
+      return
+    }
     if (p && p.saldo < 0) return `⚠ Tersimpan, tapi saldo ${p.name} sekarang minus ${fmtRp(-p.saldo)}. Cek apakah ada pemasukan atau pindah dana yang belum dicatat.`
   } catch { /* peringatan hanya bonus */ }
 }
@@ -68,6 +73,21 @@ async function pocketOf(c: C, raw: FormDataEntryValue | null): Promise<string | 
   if (!id) return null
   const { data } = await c.sb.from('pockets').select('id').eq('id', id).eq('owner_id', c.uid).maybeSingle()
   return data ? (data.id as string) : null
+}
+/** Kartu kredit (sumber dana jenis kredit) yang dipilih untuk tagihan kartu; hanya diterima kalau milik pengguna ini. */
+async function cardPocketOf(c: C, raw: FormDataEntryValue | null): Promise<string | null> {
+  const id = text(raw, 40)
+  if (!id) return null
+  const { data } = await c.sb.from('pockets').select('id').eq('id', id).eq('owner_id', c.uid).eq('kind', 'kredit').maybeSingle()
+  return data ? (data.id as string) : null
+}
+/** Hubungkan tagihan kartu ke sumber dana kartu kreditnya (dipakai PocketInline). */
+export async function setBillCardPocket(_table: string, billId: string, _field: string, value: string) {
+  const c = await me()
+  if (!c) return done()
+  const pid = await cardPocketOf(c, value)
+  await c.sb.from('bills').update({ card_pocket_id: pid }).eq('id', billId).eq('owner_id', c.uid).eq('kind', 'kartu')
+  done()
 }
 async function curYm() {
   const v = (await cookies()).get('ym')?.value
@@ -281,6 +301,7 @@ export async function addBill(formData: FormData): Promise<string | void> {
     start_ym, end_ym: months > 0 ? ymAdd(start_ym, months - 1) : null,
     note: text(formData.get('note'), 120),
     min_payment: kind === 'kartu' ? Math.min(money(formData.get('min_payment')), amount) : 0,
+    card_pocket_id: kind === 'kartu' ? await cardPocketOf(c, formData.get('card_pocket_id')) : null,
   }).select('id').single()
   if (error || !row) { console.error('[tagihan] gagal simpan', error); return `Gagal menyimpan: ${error?.message ?? 'tidak ada data kembali'}` }
   await mirror(c, [{ table: 'bills', id: row.id }], 'Tambah', 'Tagihan', `${name} (${KIND_NAME[kind]}) ${fmtRp(amount)}/bulan mulai ${ymLabel(start_ym)}${months > 0 ? `, ${months} bulan` : ', terus'}`, [await curYm(), start_ym])
@@ -528,24 +549,25 @@ export async function addPocket(formData: FormData) {
   if (!name || !(POCKET_KINDS as readonly string[]).includes(kind)) return
   const c = await me()
   if (!c) return done()
-  const opening = money(formData.get('opening_balance'))
+  const opening = money(formData.get('opening_balance')) // untuk kartu kredit: terpakai saat ini
+  const credit_limit = kind === 'kredit' ? money(formData.get('credit_limit')) : 0
   const { count } = await c.sb.from('pockets').select('id', { count: 'exact', head: true }).eq('owner_id', c.uid)
-  const { data: row } = await c.sb.from('pockets').insert({ owner_id: c.uid, name, kind, opening_balance: opening, sort: count ?? 0 }).select('id').single()
-  if (row) await mirror(c, [{ table: 'pockets', id: row.id }], 'Tambah', 'Sumber Dana', `${name} (${kind}), saldo awal ${fmtRp(opening)}`)
+  const { data: row } = await c.sb.from('pockets').insert({ owner_id: c.uid, name, kind, opening_balance: opening, credit_limit, sort: count ?? 0 }).select('id').single()
+  if (row) await mirror(c, [{ table: 'pockets', id: row.id }], 'Tambah', 'Sumber Dana', `${name} (${kind}), ${kind === 'kredit' ? `limit ${fmtRp(credit_limit)}, terpakai ${fmtRp(opening)}` : `saldo awal ${fmtRp(opening)}`}`)
   done()
 }
-export async function updatePocket(id: string, field: 'name' | 'opening_balance' | 'kind', value: string) {
+export async function updatePocket(id: string, field: 'name' | 'opening_balance' | 'kind' | 'credit_limit', value: string) {
   const c = await me()
   if (!c) return done()
   if (field === 'kind' && !(POCKET_KINDS as readonly string[]).includes(value)) return
-  const patch = field === 'name' ? { name: text(value, 40) } : field === 'kind' ? { kind: value } : { opening_balance: money(value) }
+  const patch = field === 'name' ? { name: text(value, 40) } : field === 'kind' ? { kind: value } : field === 'credit_limit' ? { credit_limit: money(value) } : { opening_balance: money(value) }
   if (field === 'name' && !(patch as { name: string }).name) return
   const old = await prev(c, 'pockets' as Table, id)
   if (!old) return
   await c.sb.from('pockets').update(patch).eq('id', id).eq('owner_id', c.uid)
   const linked = field === 'name' ? await linkedRows(c, id) : []
   await mirror(c, [{ table: 'pockets', id }, ...linked], 'Ubah', 'Sumber Dana', field === 'name'
-    ? `"${old.name}" → "${text(value, 40)}"` : field === 'kind' ? `${old.name}: jenis ${old.kind} → ${value}` : `${old.name}: saldo awal ${fmtRp(Number(old.opening_balance))} → ${fmtRp(money(value))}`)
+    ? `"${old.name}" → "${text(value, 40)}"` : field === 'credit_limit' ? `${old.name}: limit → ${fmtRp(money(value))}` : field === 'kind' ? `${old.name}: jenis ${old.kind} → ${value}` : `${old.name}: saldo awal ${fmtRp(Number(old.opening_balance))} → ${fmtRp(money(value))}`)
   done()
 }
 export async function deletePocket(id: string) {

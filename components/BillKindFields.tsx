@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { MoneyInput } from './Fields'
 
 /** Pilihan jenis + kolom minimum bayar yang hanya muncul untuk kartu kredit. */
-export function BillKindFields() {
+export function BillKindFields({ cards = [] }: { cards?: { id: string; name: string }[] }) {
   const [kind, setKind] = useState('tagihan')
   return (
     <>
@@ -18,6 +18,12 @@ export function BillKindFields() {
         <label className="field full"><span>Pembayaran minimum</span>
           <MoneyInput name="min_payment" label="Pembayaran minimum kartu kredit" />
           <small className="hint">Bayar di bawah ini bisa kena denda telat. Tagihan tiap bulan bisa diubah di daftar.</small>
+        </label>
+      ) : null}
+      {kind === 'kartu' && cards.length ? (
+        <label className="field full"><span>Hubungkan ke kartu</span>
+          <select className="select" name="card_pocket_id" defaultValue=""><option value="">Tidak terhubung</option>{cards.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
+          <small className="hint">Bayar tagihan ini akan mengembalikan limit kartu di Sumber dana.</small>
         </label>
       ) : null}
     </>

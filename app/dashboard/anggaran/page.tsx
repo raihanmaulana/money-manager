@@ -48,7 +48,7 @@ export default async function Anggaran() {
               <li key={i.id} className="row wrap">
                 <span className="grow" style={{ minWidth: '12rem' }}><InlineField id={i.id} field="label" value={i.label} action={updateIncome} label="Nama pemasukan" />
                   <span className="meta" style={{ paddingLeft: 8 }}>{i.kind === 'masuk' ? 'Uang masuk' : 'Potongan'}</span>
-                  {pockets.length ? <PocketInline table="income_items" id={i.id} value={i.pocket_id} pockets={pockets} action={setRowPocket} /> : null}</span>
+                  {pockets.length ? <PocketInline table="income_items" id={i.id} value={i.pocket_id} pockets={pockets.filter((p) => p.kind !== 'kredit')} action={setRowPocket} /> : null}</span>
                 <span style={{ width: '10.5rem', flex: 'none' }}><InlineField id={i.id} field="amount" value={i.amount} money action={updateIncome} label={`Nominal ${i.label}`} /></span>
                 <ActionButton action={deleteIncome} args={[i.id]} label={`Hapus ${i.label}`} />
               </li>
@@ -60,7 +60,7 @@ export default async function Anggaran() {
               <label className="field"><span>Tambah</span><input className="input" name="label" placeholder="mis. Bonus" maxLength={80} required /></label>
               <label className="field"><span>Jenis</span><select className="select" name="kind"><option value="masuk">Uang masuk</option><option value="potong">Potongan</option></select></label>
               <label className="field"><span>Nominal</span><MoneyInput name="amount" label="Nominal" /></label>
-              <PocketSelect pockets={pockets} label="Masuk ke / dipotong dari" full />
+              <PocketSelect pockets={pockets.filter((p) => p.kind !== 'kredit')} label="Masuk ke / dipotong dari" full />
               <div className="full"><Submit className="btn small ghost"><Plus aria-hidden /> Tambah</Submit></div>
             </QuickForm>
           )}

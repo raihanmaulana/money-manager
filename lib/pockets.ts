@@ -7,17 +7,21 @@ const num = (v: unknown) => Number(v ?? 0)
 const nums = (rows: any[] | null) => (rows ?? []).map((r) => ({ ...r, amount: num(r.amount) }))
 
 export async function queryPockets(sb: SupabaseClient, owner: string, today: { ym: string; iso: string }): Promise<{ pockets: PocketView[]; transfers: Transfer[]; adjustments: PocketAdjustment[] }> {
-  const [p, t, inc, exp, dep, pay, adj] = await Promise.all([
+  const [p, t, inc, exp, dep, pay, adj, bl] = await Promise.all([
     sb.from('pockets').select('*').eq('owner_id', owner).order('sort').order('created_at'),
     sb.from('pocket_transfers').select('*').eq('owner_id', owner).order('moved_on', { ascending: false }).order('created_at', { ascending: false }),
     sb.from('income_items').select('ym,kind,amount,pocket_id').eq('owner_id', owner).not('pocket_id', 'is', null),
     sb.from('expenses').select('spent_on,amount,pocket_id').eq('owner_id', owner).not('pocket_id', 'is', null),
     sb.from('goal_deposits').select('ym,amount,pocket_id').eq('owner_id', owner).not('pocket_id', 'is', null),
-    sb.from('bill_payments').select('paid_on,amount,pocket_id').eq('owner_id', owner).not('pocket_id', 'is', null),
+    sb.from('bill_payments').select('paid_on,amount,pocket_id,bill_id').eq('owner_id', owner).not('pocket_id', 'is', null),
     sb.from('pocket_adjustments').select('*').eq('owner_id', owner).order('adjusted_on', { ascending: false }).order('created_at', { ascending: false }),
+    sb.from('bills').select('id,card_pocket_id').eq('owner_id', owner).not('card_pocket_id', 'is', null),
   ])
-  const pockets = (p.data ?? []).map((r) => ({ ...r, opening_balance: num(r.opening_balance) })) as Pocket[]
+  const pockets = (p.data ?? []).map((r) => ({ ...r, opening_balance: num(r.opening_balance), credit_limit: num(r.credit_limit) })) as Pocket[]
   const transfers = nums(t.data).map((r) => ({ ...r, fee: num(r.fee) })) as Transfer[]
   const adjustments = nums(adj.data) as PocketAdjustment[]
-  return { pockets: pocketBalances(pockets, nums(inc.data), nums(exp.data), nums(dep.data), transfers, today, nums(pay.data), adjustments), transfers, adjustments }
+  const cardOf = new Map((bl.data ?? []).map((b) => [b.id as string, b.card_pocket_id as string]))
+  const payRows = nums(pay.data)
+  const cardPays = payRows.filter((x) => cardOf.has(x.bill_id)).map((x) => ({ paid_on: x.paid_on as string, amount: x.amount as number, card_pocket_id: cardOf.get(x.bill_id)! }))
+  return { pockets: pocketBalances(pockets, nums(inc.data), nums(exp.data), nums(dep.data), transfers, today, payRows, adjustments, cardPays), transfers, adjustments }
 }

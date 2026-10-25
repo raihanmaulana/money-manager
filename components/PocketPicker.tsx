@@ -5,7 +5,7 @@ import { Ban, Check, ChevronDown } from 'lucide-react'
 import { PocketAvatar } from './PocketAvatar'
 import type { Pocket } from '@/lib/types'
 
-const KIND = { bank: 'Bank', ewallet: 'E-wallet', tunai: 'Tunai', lainnya: 'Lainnya' } as const
+const KIND = { bank: 'Bank', ewallet: 'E-wallet', tunai: 'Tunai', lainnya: 'Lainnya', kredit: 'Kartu kredit' } as const
 
 /** Pilihan sumber dana: tombol ringkas yang membuka daftar bermerek bank / e-wallet. Nilai dikirim lewat input tersembunyi. */
 export function PocketPicker({ pockets, name = 'pocket_id', label, defaultValue = '' }: { pockets: Pocket[]; name?: string; label: string; defaultValue?: string }) {
