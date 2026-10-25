@@ -367,12 +367,12 @@ export async function setBillAmountThisMonth(key: string, _field: string, value:
   if (!billId || !isYm(ym)) return
   const c = await me()
   if (!c) return done()
-  const { data: bill } = await c.sb.from('bills').select('amount').eq('id', billId).eq('owner_id', c.uid).maybeSingle()
+  const { data: bill } = await c.sb.from('bills').select('amount,kind').eq('id', billId).eq('owner_id', c.uid).maybeSingle()
   if (!bill) return
   const v = money(value)
   const before = (await c.sb.from('bill_months').select('amount_override').eq('bill_id', billId).eq('ym', ym).maybeSingle()).data
   const was = Number(before?.amount_override ?? bill.amount)
-  await upsertBM(c, billId, ym, { amount_override: v === Number(bill.amount) ? null : v })
+  await upsertBM(c, billId, ym, { amount_override: v === Number(bill.amount) && bill.kind !== 'kartu' ? null : v })
   const b = (await c.sb.from('bills').select('name').eq('id', billId).maybeSingle()).data
   await mirror(c, [{ table: 'bill_months', id: billId, key: `${billId}|${ym}` }], 'Ubah nominal bulan ini', 'Status Tagihan', `${ymLabel(ym)}: ${b?.name ?? ''} ${fmtRp(was)} → ${fmtRp(v)}`, [ym])
   done()

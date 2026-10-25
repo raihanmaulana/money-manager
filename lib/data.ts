@@ -66,13 +66,16 @@ export async function loadMonth(ctx: Ctx): Promise<MonthData> {
     sb.from('bill_months').select('*').eq('owner_id', o).eq('ym', ym),
     sb.from('bill_payments').select('*').eq('owner_id', o).eq('ym', ym).order('paid_on').order('created_at'),
   ])
+  // Kartu kredit membawa sisa tagihan antarbulan, jadi butuh status bulan-bulan sebelumnya juga.
+  const cardIds = (bills.data ?? []).filter((b) => b.kind === 'kartu').map((b) => b.id as string)
+  const older = cardIds.length ? (await sb.from('bill_months').select('*').eq('owner_id', o).in('bill_id', cardIds).lt('ym', ym)).data ?? [] : []
   return {
     ym,
     income: (inc.data ?? []).map((r) => ({ ...r, amount: num(r.amount) })) as IncomeItem[],
     budget: (bud.data ?? []).map((r) => ({ ...r, amount: num(r.amount) })) as BudgetItem[],
     expenses: (exp.data ?? []).map((r) => ({ ...r, amount: num(r.amount) })) as Expense[],
     bills: (bills.data ?? []).map((r) => ({ ...r, amount: num(r.amount), min_payment: num(r.min_payment ?? 0) })) as Bill[],
-    billMonths: (bms.data ?? []).map((r) => ({ ...r, amount_override: r.amount_override == null ? null : num(r.amount_override), paid_amount: num(r.paid_amount ?? 0) })) as BillMonth[],
+    billMonths: [...(bms.data ?? []), ...older].map((r) => ({ ...r, amount_override: r.amount_override == null ? null : num(r.amount_override), paid_amount: num(r.paid_amount ?? 0) })) as BillMonth[],
     payments: (pays.data ?? []).map((r) => ({ ...r, amount: num(r.amount) })) as BillPayment[],
   }
 }

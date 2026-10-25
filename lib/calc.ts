@@ -59,6 +59,7 @@ export type BillRow = {
   dueDay: number // dibatasi ke jumlah hari di bulan itu
   monthsAfter: number | null // sisa bulan setelah bulan ini (null = tanpa batas)
   remainingTotal: number | null // total yang masih harus dibayar termasuk bulan ini
+  carried: number // kartu kredit: sisa tagihan bulan lalu yang terbawa ke bulan ini (0 = tidak ada)
 }
 
 export const billActive = (b: Bill, ym: string) => b.start_ym <= ym && (!b.end_ym || ym <= b.end_ym)
@@ -69,13 +70,21 @@ export function billRowsFor(bills: Bill[], bms: BillMonth[], ym: string): BillRo
     if (!billActive(bill, ym)) continue
     const bm = bms.find((x) => x.bill_id === bill.id && x.ym === ym)
     const overridden = bm?.amount_override != null
-    const amount = bm?.amount_override ?? bill.amount
-    const monthsAfter = bill.end_ym ? ymDiff(bill.end_ym, ym) : null
     const isCard = bill.kind === 'kartu'
+    // Kartu kredit: sisa yang belum dibayar bulan lalu terbawa ke bulan berikutnya (kecuali nominal bulan itu diatur sendiri).
+    let carry = bill.amount
+    if (isCard) {
+      for (let m = bill.start_ym; m < ym; m = ymAdd(m, 1)) {
+        const x = bms.find((b) => b.bill_id === bill.id && b.ym === m)
+        carry = Math.max(0, (x?.amount_override ?? carry) - Math.max(0, x?.paid_amount ?? 0))
+      }
+    }
+    const amount = bm?.amount_override ?? (isCard ? carry : bill.amount)
+    const monthsAfter = bill.end_ym ? ymDiff(bill.end_ym, ym) : null
     const rawPaid = Math.max(0, bm?.paid_amount ?? 0)
     const paidAmount = isCard ? rawPaid : bm?.paid ? Math.max(amount, rawPaid) : rawPaid
     const minPayment = isCard ? Math.min(bill.min_payment ?? 0, amount) : 0
-    const paid = isCard ? amount > 0 && paidAmount >= amount : !!bm?.paid || (amount > 0 && paidAmount >= amount)
+    const paid = isCard ? paidAmount >= amount : !!bm?.paid || (amount > 0 && paidAmount >= amount)
     rows.push({
       bill,
       amount,
@@ -89,6 +98,7 @@ export function billRowsFor(bills: Bill[], bms: BillMonth[], ym: string): BillRo
       dueDay: Math.min(bill.due_day, daysInMonth(ym)),
       monthsAfter,
       remainingTotal: monthsAfter == null ? null : amount * (monthsAfter + 1),
+      carried: isCard && !overridden && ym > bill.start_ym ? carry : 0,
     })
   }
   return rows.sort((a, b) => a.dueDay - b.dueDay || a.bill.name.localeCompare(b.bill.name))

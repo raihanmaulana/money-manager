@@ -153,3 +153,17 @@ test('tagihan biasa bisa dicicil: sisa dan status lunas', () => {
   r = billRowsFor([bill], bm(0, true), '2026-10')[0]
   assert.equal(r.paid, true); assert.equal(r.paidAmount, 150_000)
 })
+
+test('kartu kredit: sisa bulan lalu terbawa ke bulan berikutnya', () => {
+  const card = { id: 'k', name: 'BRI CC', kind: 'kartu', amount: 2_000_000, due_day: 10, start_ym: '2026-10', end_ym: null, note: '' } as Bill
+  const bms: BillMonth[] = [{ bill_id: 'k', ym: '2026-10', amount_override: null, skipped: false, paid: false, paid_amount: 1_000_000 }]
+  assert.equal(billRowsFor([card], bms, '2026-10')[0].amount, 2_000_000)
+  const nov = billRowsFor([card], bms, '2026-11')[0]
+  assert.equal(nov.amount, 1_000_000)
+  assert.equal(nov.carried, 1_000_000)
+  const des = billRowsFor([card], [...bms, { bill_id: 'k', ym: '2026-11', amount_override: null, skipped: false, paid: false, paid_amount: 1_000_000 }], '2026-12')[0]
+  assert.equal(des.amount, 0) // sudah lunas
+  assert.equal(des.paid, true)
+  const baru = billRowsFor([card], [...bms, { bill_id: 'k', ym: '2026-11', amount_override: 1_700_000, skipped: false, paid: false, paid_amount: 0 }], '2026-11')[0]
+  assert.equal(baru.amount, 1_700_000) // nominal bulan itu diatur sendiri (sisa + belanja baru)
+})

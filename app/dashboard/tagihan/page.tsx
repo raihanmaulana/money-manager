@@ -88,6 +88,7 @@ export default async function Tagihan() {
                           : r.isCard && r.minMet ? <span className="chip ok">Minimum terpenuhi</span>
                           : late ? <span className="chip over">Telat</span> : <span className="chip warn">Belum</span>}
                         {r.overridden ? <span className="chip">Diubah bulan ini</span> : null}
+                        {r.carried > 0 ? <span className="chip warn">Sisa bulan lalu {rp(r.carried)}</span> : null}
                       </div>
                       <p className="meta">
                         <CalendarClock size={13} aria-hidden /> {due}
