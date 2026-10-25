@@ -50,7 +50,7 @@ export default async function Catatan() {
                       {pos.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
                     </select>
                   </label>
-                  <label className="field"><span>Tanggal</span><DatePicker name="spent_on" label="Tanggal" defaultValue={defDate} min={`${ctx.ym}-01`} max={`${ctx.ym}-${String(daysInMonth(ctx.ym)).padStart(2, '0')}`} /></label>
+                  <label className="field"><span>Tanggal</span><DatePicker name="spent_on" label="Tanggal" lockable defaultValue={defDate} min={`${ctx.ym}-01`} max={`${ctx.ym}-${String(daysInMonth(ctx.ym)).padStart(2, '0')}`} /></label>
                   <PocketSelect pockets={pockets} full />
                   <label className="field full"><span>Catatan</span><input className="input" name="note" maxLength={120} placeholder="mis. kopi sore" /></label>
                   <SplitFields />

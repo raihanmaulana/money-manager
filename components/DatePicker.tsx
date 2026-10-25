@@ -1,7 +1,7 @@
 'use client'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
+import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Lock, LockOpen } from 'lucide-react'
 import { daysInMonth, ymAdd, ymLabel, ymOfDate } from '@/lib/calc'
 
 const DOW = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min']
@@ -11,11 +11,13 @@ const nice = (v: string) => new Date(v + 'T00:00:00Z').toLocaleDateString('id-ID
 const addDays = (v: string, n: number) => new Date(Date.parse(v + 'T00:00:00Z') + n * 86_400_000).toISOString().slice(0, 10)
 
 /** Pemilih tanggal bertema pengganti <input type="date">. Nilai dikirim lewat input tersembunyi bernama `name`. */
-export function DatePicker({ name, defaultValue, min, max, label, inModal = false }: { name: string; defaultValue: string; min?: string; max?: string; label: string; inModal?: boolean }) {
+export function DatePicker({ name, defaultValue, min, max, label, inModal = false, lockable = false }: { name: string; defaultValue: string; min?: string; max?: string; label: string; inModal?: boolean; lockable?: boolean }) {
   const [value, setValue] = useState(defaultValue)
   const [open, setOpen] = useState(false)
   const [view, setView] = useState(defaultValue.slice(0, 7))
   const [cursor, setCursor] = useState(defaultValue)
+  const [locked, setLocked] = useState(false)
+  const lockedRef = useRef(false)
   const hidden = useRef<HTMLInputElement>(null)
   const trigger = useRef<HTMLButtonElement>(null)
   const grid = useRef<HTMLDivElement>(null)
@@ -25,10 +27,22 @@ export function DatePicker({ name, defaultValue, min, max, label, inModal = fals
   useEffect(() => {
     const f = hidden.current?.form
     if (!f) return
-    const on = () => setValue(defaultValue)
+    const on = () => setValue((cur) => (lockedRef.current ? cur : defaultValue)) // tanggal terkunci tidak kembali ke hari ini
     f.addEventListener('reset', on)
     return () => f.removeEventListener('reset', on)
   }, [defaultValue])
+
+  const KEY = 'arus.datelock'
+  const store = (v: string | null) => { try { if (v) localStorage.setItem(KEY, v); else localStorage.removeItem(KEY) } catch { /* penyimpanan tidak tersedia */ } }
+  useEffect(() => { // pulihkan tanggal terkunci (hanya jika masih di bulan yang sedang dibuka)
+    if (!lockable) return
+    try {
+      const v = localStorage.getItem(KEY)
+      if (v && /^\d{4}-\d{2}-\d{2}$/.test(v) && ok(v)) { setValue(v); setLocked(true); lockedRef.current = true }
+    } catch { /* abaikan */ }
+  }, [lockable, ok]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (lockedRef.current) store(value) }, [value]) // eslint-disable-line react-hooks/exhaustive-deps
+  const toggleLock = () => { const n = !locked; setLocked(n); lockedRef.current = n; store(n ? value : null) }
 
   const show = () => { setView(value.slice(0, 7)); setCursor(value); setOpen(true) }
   const close = useCallback((back = true) => { setOpen(false); if (back) trigger.current?.focus() }, [])
@@ -66,6 +80,11 @@ export function DatePicker({ name, defaultValue, min, max, label, inModal = fals
         <span>{new Date(value + 'T00:00:00Z').toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })}</span>
         <ChevronDown className="dp-caret" aria-hidden />
       </button>
+      {lockable ? (
+        <button type="button" className={`dp-lock${locked ? ' on' : ''}`} onClick={toggleLock} aria-pressed={locked} title="Tanggal tetap sama setelah menyimpan, berguna untuk mencatat hari-hari sebelumnya">
+          {locked ? <Lock aria-hidden size={14} /> : <LockOpen aria-hidden size={14} />} {locked ? 'Tanggal terkunci' : 'Kunci tanggal'}
+        </button>
+      ) : null}
       {open ? createPortal(
         <>
           <div className="mp-backdrop" style={inModal ? { zIndex: 130 } : undefined} onClick={() => close(false)} aria-hidden="true" />

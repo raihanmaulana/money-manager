@@ -711,3 +711,9 @@ body { background: var(--color-paper-2); }
 .combo-btn { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); display: grid; place-items: center; width: 2rem; height: 2rem; border: 0; background: transparent; color: var(--color-muted); cursor: pointer; border-radius: var(--radius-sm); }
 .combo-btn:hover { background: var(--color-paper-2); }
 .ts-opt.combo-new { color: var(--color-accent-deep); cursor: default; font-weight: 600; }
+
+/* Kunci tanggal */
+.dp-lock { display: inline-flex; align-items: center; gap: 6px; margin-top: 6px; padding: 3px 10px; border: var(--rule-w) solid var(--color-rule); border-radius: 99px; background: var(--color-surface); color: var(--color-muted); font: inherit; font-size: var(--text-xs); cursor: pointer; }
+.dp-lock:hover { border-color: var(--color-muted); }
+.dp-lock.on { background: var(--color-accent-soft); border-color: var(--color-accent); color: var(--page-ink, var(--color-ink)); font-weight: 600; }
+.dp-lock:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
