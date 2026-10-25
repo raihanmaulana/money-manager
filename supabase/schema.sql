@@ -297,3 +297,6 @@ end $$;
 
 alter table public.bills drop constraint if exists bills_kind_check;
 alter table public.bills add constraint bills_kind_check check (kind in ('tagihan','cicilan','hutang','kartu','paylater'));
+
+-- Pelunasan bisa masuk/keluar dari sumber dana (mengubah saldo, bukan pemasukan anggaran)
+alter table public.debt_payments add column if not exists pocket_id uuid references public.pockets(id) on delete set null;

@@ -41,4 +41,4 @@ export type DebtEntry = {
   /** true = berasal dari split bill di Catatan (hanya baca di sini) */
   fromSplit?: boolean
 }
-export type DebtPayment = { id: string; person_id: string; direction: 'them_to_me' | 'me_to_them'; amount: number; paid_on: string; note: string }
+export type DebtPayment = { id: string; person_id: string; direction: 'them_to_me' | 'me_to_them'; amount: number; paid_on: string; note: string; pocket_id?: string | null }

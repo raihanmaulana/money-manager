@@ -7,6 +7,7 @@ import { addDebtPerson } from '@/lib/debt-actions'
 import { PageHead } from '@/components/PageHead'
 import { TileTitle } from '@/components/TileTitle'
 import { QuickForm, Submit } from '@/components/Fields'
+import { LinkBusy } from '@/components/LinkBusy'
 
 export const metadata = { title: 'Hutang Split Bill' }
 
@@ -25,6 +26,7 @@ export default async function Hutang() {
               <div className="tile-head"><TileTitle id={`d-${person.id}`} icon={HandCoins}>{person.name}</TileTitle><ChevronRight aria-hidden size={18} /></div>
               <p className="kicker">{s.who}</p>
               <p className={`big ${s.tone === 'neg' ? 'minus' : ''}`} style={{ fontSize: '2rem' }}>{s.amount ? rp(s.amount) : 'Lunas'}</p>
+              <LinkBusy />
               <p className="hint">{count} baris · ditagih ke dia {rp(owedToMe)} · ditagih ke saya {rp(owedByMe)}</p>
             </Link>
           )

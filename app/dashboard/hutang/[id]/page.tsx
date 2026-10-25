@@ -1,7 +1,9 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { ArrowLeft, FileText, FileSpreadsheet, HandCoins, Plus, Scale, Wallet } from 'lucide-react'
-import { getCtx, loadDebtPerson } from '@/lib/data'
+import { getCtx, loadDebtPerson, loadPockets } from '@/lib/data'
+import { isCreditKind } from '@/lib/types'
+import { PocketSelect } from '@/components/PocketSelect'
 import { rp } from '@/lib/calc'
 import { debtSentence, debtSummary, shareLabel } from '@/lib/debt'
 import { addDebtEntry, addDebtPayment, deleteDebtEntry, deleteDebtPayment, deleteDebtPerson } from '@/lib/debt-actions'
@@ -14,6 +16,7 @@ import { ConfirmButton } from '@/components/ConfirmButton'
 import { DebtEntryFields } from '@/components/DebtEntryFields'
 import { DebtEntryEditor } from '@/components/DebtEntryEditor'
 import { DebtImport } from '@/components/DebtImport'
+import { LinkBusy } from '@/components/LinkBusy'
 
 export const metadata = { title: 'Hutang Split Bill' }
 const tgl = (iso: string) => new Date(iso + 'T00:00:00Z').toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
@@ -21,7 +24,9 @@ const tgl = (iso: string) => new Date(iso + 'T00:00:00Z').toLocaleDateString('id
 export default async function Orang({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const ctx = await getCtx()
-  const data = await loadDebtPerson(ctx, id)
+  const [data, { pockets }] = await Promise.all([loadDebtPerson(ctx, id), loadPockets(ctx)])
+  const spendable = pockets.filter((p) => !isCreditKind(p.kind))
+  const pname = (pid?: string | null) => pockets.find((p) => p.id === pid)?.name
   if (!data) redirect('/dashboard/hutang')
   const { person, entries, payments } = data
   const s = debtSummary(entries, payments)
@@ -50,8 +55,8 @@ export default async function Orang({ params }: { params: Promise<{ id: string }
     <>
       <PageHead ctx={ctx} title={`Hutang dengan ${person.name}`} month={false} actions={
         <>
-          <Link className="btn small ghost" href="/dashboard/hutang"><ArrowLeft aria-hidden size={16} /> Semua orang</Link>
-          <Link className="btn small" href={`/dashboard/hutang/${person.id}/laporan`}><FileText aria-hidden size={16} /> Laporan PDF</Link>
+          <Link className="btn small ghost" href="/dashboard/hutang"><ArrowLeft aria-hidden size={16} /> Semua orang<LinkBusy /></Link>
+          <Link className="btn small" href={`/dashboard/hutang/${person.id}/laporan`}><FileText aria-hidden size={16} /> Laporan PDF<LinkBusy /></Link>
         </>
       } />
       <div className="bento">
@@ -88,7 +93,8 @@ export default async function Orang({ params }: { params: Promise<{ id: string }
         </section>
 
         <section className="tile s6" style={{ ['--i' as string]: i++ }} aria-labelledby="h-lunas">
-          <div className="tile-head"><TileTitle id="h-lunas" icon={Wallet}>Pelunasan</TileTitle></div>
+          <div className="tile-head"><TileTitle id="h-lunas" icon={Wallet}>Pelunasan</TileTitle><span className="tile-note">{payments.length} kali</span></div>
+          <p className="hint" style={{ marginBottom: 'var(--space-3)' }}>Pilih sumber dana supaya saldonya ikut naik (atau turun kalau Anda yang membayar). Tidak dihitung sebagai pemasukan anggaran.</p>
           <QuickForm action={addDebtPayment} className="stack">
             <input type="hidden" name="person_id" value={person.id} />
             <div className="form-grid">
@@ -99,7 +105,8 @@ export default async function Orang({ params }: { params: Promise<{ id: string }
               </label>
               <label className="field"><span>Jumlah</span><MoneyInput name="amount" label="Jumlah pelunasan" required defaultValue={out.amount} /></label>
               <label className="field"><span>Tanggal</span><DatePicker name="paid_on" label="Tanggal" defaultValue={ctx.today.iso} /></label>
-              <label className="field"><span>Catatan</span><input className="input" name="note" maxLength={120} placeholder="mis. transfer BCA" /></label>
+              <PocketSelect pockets={spendable} label="Masuk ke / keluar dari sumber dana" full />
+              <label className="field full"><span>Catatan</span><input className="input" name="note" maxLength={120} placeholder="mis. transfer BCA" /></label>
             </div>
             <Submit className="btn ghost"><Scale aria-hidden /> Catat pelunasan</Submit>
           </QuickForm>
@@ -107,7 +114,7 @@ export default async function Orang({ params }: { params: Promise<{ id: string }
             <ul className="rows" style={{ marginTop: 'var(--space-3)' }}>
               {payments.map((p) => (
                 <li key={p.id}>
-                  <span className="grow"><span className="name">{p.direction === 'them_to_me' ? `${person.name} bayar ke saya` : `Saya bayar ke ${person.name}`}</span><span className="meta">{tgl(p.paid_on)}{p.note ? ` · ${p.note}` : ''}</span></span>
+                  <span className="grow"><span className="name">{p.direction === 'them_to_me' ? `${person.name} bayar ke saya` : `Saya bayar ke ${person.name}`}</span><span className="meta">{tgl(p.paid_on)} · {pname(p.pocket_id) ? `${p.direction === 'them_to_me' ? 'masuk ke' : 'keluar dari'} ${pname(p.pocket_id)}` : 'tanpa sumber dana'}{p.note ? ` · ${p.note}` : ''}</span></span>
                   <span className="amt">{rp(p.amount)}</span>
                   <ActionButton action={deleteDebtPayment} args={[p.id]} label={`Hapus pelunasan ${rp(p.amount)}`} />
                 </li>

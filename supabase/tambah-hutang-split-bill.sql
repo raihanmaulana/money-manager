@@ -54,3 +54,6 @@ begin
     execute format('create policy "%s_owner" on public.%I for all using (owner_id = auth.uid()) with check (owner_id = auth.uid())', t, t);
   end loop;
 end $$;
+
+-- Pelunasan bisa masuk/keluar dari sumber dana (mengubah saldo, bukan pemasukan anggaran)
+alter table public.debt_payments add column if not exists pocket_id uuid references public.pockets(id) on delete set null;

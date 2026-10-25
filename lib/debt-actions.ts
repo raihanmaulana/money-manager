@@ -108,7 +108,10 @@ export async function addDebtPayment(fd: FormData): Promise<string | void> {
   if (!c) return done()
   const p = await personOf(c, text(fd.get('person_id'), 40))
   if (!p) return 'Orangnya tidak ditemukan.'
-  const { error } = await c.sb.from('debt_payments').insert({ owner_id: c.uid, person_id: p.id, direction, amount, paid_on, note: text(fd.get('note'), 120) })
+  const pid = text(fd.get('pocket_id'), 40)
+  const pocket = pid ? (await c.sb.from('pockets').select('id,kind').eq('id', pid).eq('owner_id', c.uid).maybeSingle()).data : null
+  if (pid && (!pocket || pocket.kind === 'kredit' || pocket.kind === 'paylater')) return 'Pilih sumber dana yang bukan kartu kredit atau PayLater.'
+  const { error } = await c.sb.from('debt_payments').insert({ owner_id: c.uid, person_id: p.id, direction, amount, paid_on, note: text(fd.get('note'), 120), pocket_id: pocket ? (pocket.id as string) : null })
   if (error) return `Gagal menyimpan: ${error.message}`
   done()
 }
