@@ -736,13 +736,8 @@ body { background: var(--color-paper-2); }
 .pa-dana { background: var(--brand-dana); color: var(--brand-ink); }
 .pa-shopeepay { background: var(--brand-shopeepay); color: var(--brand-ink); }
 .pa-linkaja { background: var(--brand-linkaja); color: var(--brand-ink); }
-.pp { display: grid; grid-template-columns: repeat(auto-fill, minmax(8.8rem, 1fr)); gap: var(--space-2); }
-.pp-opt { position: relative; display: flex; align-items: center; gap: var(--space-3); padding: var(--space-2) var(--space-3); min-width: 0; text-align: left; font: inherit; color: inherit; cursor: pointer; background: var(--color-surface); border: var(--rule-w) solid var(--color-rule); border-radius: var(--radius-field); transition: border-color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out); }
-.pp-opt:hover { border-color: var(--color-muted); transform: translateY(-1px); }
-.pp-opt:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
-.pp-opt.on { border-color: var(--color-accent); background: var(--color-accent-soft); box-shadow: 0 0 0 1px var(--color-accent) inset; }
-.pp-txt { display: grid; min-width: 0; line-height: 1.25; padding-right: 14px; }
+.pp-trigger { gap: var(--space-2); }
+.pp-row { gap: var(--space-3); }
+.pp-txt { display: grid; min-width: 0; line-height: 1.25; }
 .pp-txt b { font-size: var(--text-sm); font-weight: 600; overflow-wrap: anywhere; }
 .pp-txt small { font-size: var(--text-xs); color: var(--color-muted); }
-.pp-check { position: absolute; top: 6px; right: 6px; color: var(--color-accent-deep); }
-@media (prefers-reduced-motion: reduce) { .pp-opt { transition: none; } .pp-opt:hover { transform: none; } }
