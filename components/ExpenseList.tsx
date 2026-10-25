@@ -27,11 +27,13 @@ export function ExpenseList({ expenses, cats, pockets, days, splits = [] }: {
   const opener = useRef<HTMLButtonElement>(null)
   const card = useRef<HTMLDivElement>(null)
 
-  const top = Math.max(0, ...expenses.map((e) => e.amount))
-  const step = top >= 2_000_000 ? 50_000 : top >= 200_000 ? 5_000 : 1_000
-  const maxAmt = Math.max(step, Math.ceil(top / step) * step)
+  // Slider nominal: 0 – 9.999.999, per 10 ribu (posisi paling kanan = 9.999.999).
+  const AMT_TOP = 9_999_999, step = 10_000, maxPos = 1000
+  const toAmt = (n: number) => (n >= maxPos ? AMT_TOP : n * step)
+  const maxAmt = maxPos
   const d: [number, number] = dayR ?? [1, days]
   const a: [number, number] = amtR ?? [0, maxAmt]
+  const aAmt: [number, number] = [toAmt(a[0]), toAmt(a[1])]
   const active = !!(dayR || amtR || cat || pocket || q.trim())
 
   const label = (id: string | null) => cats.find((p) => p.id === id)?.label
@@ -42,7 +44,7 @@ export function ExpenseList({ expenses, cats, pockets, days, splits = [] }: {
     const kw = q.trim().toLowerCase()
     if (kw && !(`${e.note} ${label(e.budget_item_id) ?? ''} ${pk(e.pocket_id) ?? ''} ${splits.filter((x) => x.expense_id === e.id).map((x) => x.name).join(' ')}`.toLowerCase().includes(kw))) return false
     if (day < d[0] || day > d[1]) return false
-    if (e.amount < a[0] || e.amount > a[1]) return false
+    if (e.amount < aAmt[0] || e.amount > aAmt[1]) return false
     if (cat === NONE ? e.budget_item_id : cat && e.budget_item_id !== cat) return false
     if (pocket === NONE ? e.pocket_id : pocket && e.pocket_id !== pocket) return false
     return true
@@ -105,8 +107,8 @@ export function ExpenseList({ expenses, cats, pockets, days, splits = [] }: {
                 <RangeSlider min={1} max={days} value={d} onChange={(v) => setDayR(v[0] === 1 && v[1] === days ? null : v)} label="Rentang tanggal" format={(n) => `tanggal ${n}`} />
               </div>
               <div className="field f-range">
-                <span>Nominal <b>{rp(a[0])} – {rp(a[1])}</b></span>
-                <RangeSlider min={0} max={maxAmt} step={step} value={a} onChange={(v) => setAmtR(v[0] === 0 && v[1] === maxAmt ? null : v)} label="Rentang nominal" format={rp} />
+                <span>Nominal <b>{rp(aAmt[0])} – {rp(aAmt[1])}</b></span>
+                <RangeSlider min={0} max={maxAmt} step={step} value={a} onChange={(v) => setAmtR(v[0] === 0 && v[1] === maxAmt ? null : v)} label="Rentang nominal" format={(n) => rp(toAmt(n))} />
               </div>
             </div>
             <div className="confirm-actions">
