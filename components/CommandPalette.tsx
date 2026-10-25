@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import { BookOpen, Cpu, CornerDownLeft, ListChecks, LogIn, Search, UserPlus } from 'lucide-react'
 import { ACTIONS, NAV } from './nav-items'
+import { useNav } from './NavPrefs'
 
 type Entry = { href: string; label: string; group: string; Icon: (typeof NAV)[number]['Icon']; hint?: string; download?: boolean }
 export type PaletteMode = 'app' | 'site'
@@ -15,8 +16,8 @@ const SITE: Entry[] = [
   { href: '/masuk', label: 'Masuk', group: 'Akun', Icon: LogIn },
   { href: '/masuk?mode=daftar', label: 'Buat akun', group: 'Akun', Icon: UserPlus },
 ]
-const APP: Entry[] = [
-  ...NAV.map((n) => ({ ...n, group: 'Halaman' })),
+const appEntries = (nav: typeof NAV): Entry[] => [
+  ...nav.map((n) => ({ ...n, group: 'Halaman' })),
   ...ACTIONS.map((a) => ({ ...a, group: 'Tindakan' })),
 ]
 
@@ -46,16 +47,17 @@ export function CommandPaletteTrigger({ mode = 'app', className = '' }: { mode?:
 
 function Palette({ mode, onClose }: { mode: PaletteMode; onClose: () => void }) {
   const router = useRouter()
+  const navItems = useNav()
   const [q, setQ] = useState('')
   const [sel, setSel] = useState(0)
   const input = useRef<HTMLInputElement>(null)
   const list = useRef<HTMLUListElement>(null)
 
   const entries = useMemo<Entry[]>(() => {
-    const all = mode === 'site' ? SITE : APP
+    const all = mode === 'site' ? SITE : appEntries(navItems)
     const t = q.trim().toLowerCase()
     return t ? all.filter((e) => `${e.label} ${e.hint ?? ''}`.toLowerCase().includes(t)) : all
-  }, [q, mode])
+  }, [q, mode, navItems])
 
   useEffect(() => { input.current?.focus() }, [])
   useEffect(() => { setSel(0) }, [q])

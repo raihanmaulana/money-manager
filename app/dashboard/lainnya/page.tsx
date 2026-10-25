@@ -1,14 +1,15 @@
 import Link from 'next/link'
-import { PiggyBank, TrendingUp, Settings, LogOut, Landmark, FileText } from 'lucide-react'
-import { getCtx } from '@/lib/data'
+import { PiggyBank, TrendingUp, Settings, LogOut, Landmark, FileText, HandCoins } from 'lucide-react'
+import { getCtx, loadDebtMenu } from '@/lib/data'
 import { LogoutButton } from '@/components/LogoutButton'
 import { PageHead } from '@/components/PageHead'
 
 export default async function Lainnya() {
-  const ctx = await getCtx()
+  const [ctx, debt] = await Promise.all([getCtx(), loadDebtMenu()])
   const links = [
     { href: '/dashboard/tabungan', label: 'Tabungan & dana darurat', Icon: PiggyBank },
     { href: '/dashboard/sumber-dana', label: 'Sumber dana (bank, e-wallet)', Icon: Landmark },
+    ...(debt ? [{ href: '/dashboard/hutang', label: 'Hutang Split Bill', Icon: HandCoins }] : []),
     { href: '/dashboard/investasi', label: 'Simulasi investasi', Icon: TrendingUp },
     { href: '/dashboard/laporan', label: 'Laporan bulanan', Icon: FileText },
     { href: '/dashboard/pengaturan', label: 'Pengaturan', Icon: Settings },

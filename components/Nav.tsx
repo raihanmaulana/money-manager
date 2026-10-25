@@ -2,12 +2,14 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { LayoutGrid } from 'lucide-react'
-import { NAV, isActive } from './nav-items'
+import { isActive } from './nav-items'
+import { useNav } from './NavPrefs'
 
-const MORE = ['/dashboard/lainnya', '/dashboard/tabungan', '/dashboard/sumber-dana', '/dashboard/investasi', '/dashboard/laporan', '/dashboard/pengaturan']
+const MORE = ['/dashboard/lainnya', '/dashboard/tabungan', '/dashboard/sumber-dana', '/dashboard/hutang', '/dashboard/investasi', '/dashboard/laporan', '/dashboard/pengaturan']
 
 export function RailNav() {
   const path = usePathname()
+  const NAV = useNav()
   return (
     <div>
       <p className="label rail-label" id="nav-label">Menu</p>
@@ -25,7 +27,7 @@ export function RailNav() {
 
 export function TabBar() {
   const path = usePathname()
-  const main = NAV.slice(0, 4)
+  const main = useNav().slice(0, 4)
   return (
     <nav className="tabbar" aria-label="Menu utama">
       {main.map(({ href, label, Icon, hue }) => (

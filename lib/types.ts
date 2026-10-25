@@ -32,3 +32,13 @@ export type MonthData = {
   billMonths: BillMonth[]
   payments: BillPayment[]
 }
+
+/** Hutang Split Bill: buku hutang piutang dengan satu orang. */
+export type DebtPerson = { id: string; name: string }
+export type DebtEntry = {
+  id: string; person_id: string; paid_by: 'me' | 'them'; entry_on: string; title: string
+  amount: number; share: number; note: string
+  /** true = berasal dari split bill di Catatan (hanya baca di sini) */
+  fromSplit?: boolean
+}
+export type DebtPayment = { id: string; person_id: string; direction: 'them_to_me' | 'me_to_them'; amount: number; paid_on: string; note: string }

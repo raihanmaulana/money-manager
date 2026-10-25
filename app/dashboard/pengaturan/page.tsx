@@ -1,6 +1,6 @@
 import { TileTitle } from '@/components/TileTitle'
-import { Send, Sheet, UserRound } from 'lucide-react'
-import { getCtx, loadTelegram } from '@/lib/data'
+import { HandCoins, Send, Sheet, UserRound } from 'lucide-react'
+import { getCtx, loadDebtMenu, loadTelegram } from '@/lib/data'
 import { disconnectTelegram, saveTelegram, updateName } from '@/lib/actions'
 import { LogoutButton } from '@/components/LogoutButton'
 import { PageHead } from '@/components/PageHead'
@@ -8,12 +8,13 @@ import { SheetSync } from '@/components/SheetSync'
 import { sheetsEnabled } from '@/lib/sheets'
 import { telegramEnabled } from '@/lib/telegram'
 import { ActionButton, QuickForm, Submit } from '@/components/Fields'
+import { DebtMenuToggle } from '@/components/DebtMenuToggle'
 
 export const metadata = { title: 'Pengaturan' }
 
 export default async function Pengaturan() {
   const ctx = await getCtx()
-  const chat = await loadTelegram(ctx)
+  const [chat, debtOn] = await Promise.all([loadTelegram(ctx), loadDebtMenu()])
   return (
     <>
       <PageHead ctx={ctx} title="Pengaturan" month={false} />
@@ -31,6 +32,11 @@ export default async function Pengaturan() {
         <section className="tile s6" style={{ ['--i' as string]: 1 }} aria-labelledby="h-sheet">
           <div className="tile-head"><TileTitle id="h-sheet" icon={Sheet}>Google Sheet untuk audit</TileTitle></div>
           <SheetSync enabled={sheetsEnabled()} sheetUrl={process.env.NEXT_PUBLIC_SHEET_URL} />
+        </section>
+        <section className="tile s6" style={{ ['--i' as string]: 3 }} aria-labelledby="h-debt">
+          <div className="tile-head"><TileTitle id="h-debt" icon={HandCoins}>Hutang Split Bill</TileTitle>{debtOn ? <span className="chip ok">Aktif</span> : null}</div>
+          <p className="hint" style={{ marginBottom: 'var(--space-3)' }}>Buku hutang piutang dengan teman atau pasangan: siapa bayar apa, selisihnya, pelunasan, impor Excel, dan PDF untuk dikirim. Kalau diaktifkan, menunya muncul di sidebar.</p>
+          <DebtMenuToggle on={debtOn} />
         </section>
         <section className="tile s6" style={{ ['--i' as string]: 2 }} aria-labelledby="h-tg">
           <div className="tile-head"><TileTitle id="h-tg" icon={Send}>Pengingat Telegram</TileTitle>{chat ? <span className="chip ok">Terhubung</span> : null}</div>

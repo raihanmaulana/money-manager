@@ -81,3 +81,19 @@ export const demoNeedPurchases = (ym: string): NeedPurchase[] => [
   { id: 'np1', item_id: 'n1', ym, qty: 2, unit_price: 80_000, total: 160_000, est_total: 170_000, bought_on: `${ym}-04`, expense_id: null },
   { id: 'np2', item_id: 'n3', ym, qty: 1, unit_price: 74_000, total: 74_000, est_total: 70_000, bought_on: `${ym}-03`, expense_id: null },
 ]
+
+export const demoDebtPeople = [{ id: 'd1', name: 'Kartika' }, { id: 'd2', name: 'Dimas' }]
+export const demoDebtEntries = (): import('./types.ts').DebtEntry[] => [
+  { id: 'de1', person_id: 'd1', paid_by: 'me', entry_on: '2026-07-16', title: 'Bakso Samrat (Minjem)', amount: 100_000, share: 100_000, note: '' },
+  { id: 'de2', person_id: 'd1', paid_by: 'me', entry_on: '2026-07-23', title: 'Pinjam', amount: 1_000_000, share: 1_000_000, note: '' },
+  { id: 'de3', person_id: 'd1', paid_by: 'me', entry_on: '2026-08-01', title: 'Jakarta Aquarium', amount: 325_706, share: 162_853, note: '' },
+  { id: 'de4', person_id: 'd1', paid_by: 'me', entry_on: '2026-08-01', title: 'Marilyn Hotel Serpong', amount: 294_306, share: 147_153, note: '' },
+  { id: 'de5', person_id: 'd1', paid_by: 'me', entry_on: '2026-08-18', title: 'Warnet', amount: 154_700, share: 77_350, note: '' },
+  { id: 'de6', person_id: 'd1', paid_by: 'me', entry_on: '2026-10-14', title: 'Warkop Bulungan', amount: 67_200, share: 30_000, note: '' },
+  { id: 'de7', person_id: 'd1', paid_by: 'them', entry_on: '2026-08-18', title: 'Prodia', amount: 150_000, share: 150_000, note: '' },
+  { id: 'de8', person_id: 'd1', paid_by: 'them', entry_on: '2026-08-19', title: 'Pizza', amount: 90_000, share: 0, note: 'Gratis' },
+  { id: 'de9', person_id: 'd1', paid_by: 'them', entry_on: '2026-09-01', title: 'Bayar Hutang 500', amount: 500_000, share: 500_000, note: '' },
+]
+export const demoDebtPayments = (): import('./types.ts').DebtPayment[] => [
+  { id: 'dp1', person_id: 'd1', direction: 'them_to_me', amount: 200_000, paid_on: '2026-10-10', note: 'Transfer' },
+]

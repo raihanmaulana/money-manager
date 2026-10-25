@@ -1,5 +1,6 @@
 import Link from 'next/link'
-import { getCtx } from '@/lib/data'
+import { getCtx, loadDebtMenu } from '@/lib/data'
+import { NavPrefs } from '@/components/NavPrefs'
 import { LogoutButton } from '@/components/LogoutButton'
 import { RailNav, TabBar } from '@/components/Nav'
 import { CommandPaletteTrigger } from '@/components/CommandPalette'
@@ -10,8 +11,9 @@ import { PageScope } from '@/components/PageScope'
 export const dynamic = 'force-dynamic'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  const ctx = await getCtx()
+  const [ctx, debt] = await Promise.all([getCtx(), loadDebtMenu()])
   return (
+    <NavPrefs debt={debt}>
     <PageScope className="shell">
       <aside className="rail">
         <Link href="/dashboard" className="brand" aria-label="Arus, ke ringkasan">
@@ -37,5 +39,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <Calculator />
       <TabBar />
     </PageScope>
+    </NavPrefs>
   )
 }

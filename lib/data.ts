@@ -6,7 +6,7 @@ import { queryPockets } from './pockets.ts'
 import { ensureRecurring } from './recurring.ts'
 import { supabaseServer } from './supabase/server.ts'
 import * as demo from './demo.ts'
-import type { Bill, BillMonth, BillPayment, BudgetItem, Expense, Goal, GoalDeposit, IncomeItem, MonthData, PocketAdjustment, NeedItem, NeedPurchase, PocketView, Recurring, Split, Transfer } from './types.ts'
+import type { Bill, BillMonth, BillPayment, BudgetItem, Expense, Goal, GoalDeposit, IncomeItem, MonthData, PocketAdjustment, NeedItem, NeedPurchase, PocketView, Recurring, Split, Transfer, DebtEntry, DebtPayment, DebtPerson } from './types.ts'
 
 export const DEMO = process.env.DEMO_MODE === '1'
 
@@ -146,4 +146,80 @@ export async function loadTelegram(ctx: Ctx): Promise<string | null> {
   const sb = await supabaseServer()
   const { data } = await sb.from('user_telegram').select('chat_id').eq('owner_id', ctx.userId).maybeSingle()
   return (data?.chat_id as string | undefined) ?? null
+}
+
+// ── Hutang Split Bill ────────────────────────────────────────────────
+
+/** Apakah menu Hutang Split Bill diaktifkan (Pengaturan). Tabel belum ada → dianggap mati. */
+export async function loadDebtMenu(): Promise<boolean> {
+  if (DEMO) return (await cookies()).get('arus.debt')?.value === '1'
+  try {
+    const sb = await supabaseServer()
+    const { data: { user } } = await sb.auth.getUser()
+    if (!user) return false
+    const { data } = await sb.from('user_prefs').select('debt_menu').eq('owner_id', user.id).maybeSingle()
+    return !!data?.debt_menu
+  } catch { return false }
+}
+
+async function splitEntries(sb: Awaited<ReturnType<typeof supabaseServer>>, owner: string, name: string, personId: string): Promise<DebtEntry[]> {
+  const { data } = await sb.from('split_bills').select('*').eq('owner_id', owner).order('split_on', { ascending: false })
+  const mine = (data ?? []).filter((r) => String(r.name ?? '').trim().toLowerCase() === name.trim().toLowerCase())
+  if (!mine.length) return []
+  const ids = [...new Set(mine.map((r) => r.expense_id as string | null).filter(Boolean))] as string[]
+  const ex = ids.length ? (await sb.from('expenses').select('id,amount,note').in('id', ids).eq('owner_id', owner)).data ?? [] : []
+  const byId = new Map(ex.map((e) => [e.id as string, e]))
+  return mine.map((r) => {
+    const e = r.expense_id ? byId.get(r.expense_id as string) : undefined
+    const share = num(r.amount)
+    return { id: `sp-${r.id}`, person_id: personId, paid_by: 'me' as const, entry_on: r.split_on as string, title: ((e?.note as string) || (r.note as string) || 'Split bill') as string, amount: e ? Math.max(num(e.amount), share) : share, share, note: (r.note as string) ?? '', fromSplit: true }
+  })
+}
+
+export type DebtRow = { person: DebtPerson; owedToMe: number; owedByMe: number; net: number; count: number }
+
+export async function loadDebtPeople(ctx: Ctx): Promise<DebtRow[]> {
+  const { debtSummary } = await import('./debt.ts')
+  if (DEMO) {
+    return demo.demoDebtPeople.map((p) => {
+      const ent = demo.demoDebtEntries().filter((e) => e.person_id === p.id)
+      const sp = p.name === 'Dimas' ? demo.demoSplits(ctx.ym).filter((s) => s.name === p.name).map((s) => ({ paid_by: 'me' as const, share: s.amount })) : []
+      const s = debtSummary([...ent, ...sp], demo.demoDebtPayments().filter((x) => x.person_id === p.id))
+      return { person: p, owedToMe: s.owedToMe, owedByMe: s.owedByMe, net: s.net, count: ent.length + sp.length }
+    })
+  }
+  const sb = await supabaseServer()
+  const [pe, en, pa, sp] = await Promise.all([
+    sb.from('debt_people').select('id,name').eq('owner_id', ctx.userId).order('created_at'),
+    sb.from('debt_entries').select('person_id,paid_by,share').eq('owner_id', ctx.userId),
+    sb.from('debt_payments').select('person_id,direction,amount').eq('owner_id', ctx.userId),
+    sb.from('split_bills').select('name,amount').eq('owner_id', ctx.userId),
+  ])
+  return ((pe.data ?? []) as DebtPerson[]).map((p) => {
+    const ent = (en.data ?? []).filter((e) => e.person_id === p.id).map((e) => ({ paid_by: e.paid_by as 'me' | 'them', share: num(e.share) }))
+    const auto = (sp.data ?? []).filter((r) => String(r.name ?? '').trim().toLowerCase() === p.name.trim().toLowerCase()).map((r) => ({ paid_by: 'me' as const, share: num(r.amount) }))
+    const pay = (pa.data ?? []).filter((x) => x.person_id === p.id).map((x) => ({ direction: x.direction as 'them_to_me' | 'me_to_them', amount: num(x.amount) }))
+    const s = debtSummary([...ent, ...auto], pay)
+    return { person: p, owedToMe: s.owedToMe, owedByMe: s.owedByMe, net: s.net, count: ent.length + auto.length }
+  })
+}
+
+export async function loadDebtPerson(ctx: Ctx, id: string): Promise<{ person: DebtPerson; entries: DebtEntry[]; payments: DebtPayment[] } | null> {
+  if (DEMO) {
+    const person = demo.demoDebtPeople.find((p) => p.id === id)
+    if (!person) return null
+    const auto: DebtEntry[] = person.name === 'Dimas'
+      ? demo.demoSplits(ctx.ym).filter((s) => s.name === 'Dimas').map((s) => ({ id: `sp-${s.id}`, person_id: id, paid_by: 'me' as const, entry_on: s.split_on, title: 'Makan malam bareng teman', amount: 170_000, share: s.amount, note: s.note, fromSplit: true })) : []
+    return { person, entries: [...demo.demoDebtEntries().filter((e) => e.person_id === id), ...auto], payments: demo.demoDebtPayments().filter((x) => x.person_id === id) }
+  }
+  const sb = await supabaseServer()
+  const { data: person } = await sb.from('debt_people').select('id,name').eq('id', id).eq('owner_id', ctx.userId).maybeSingle()
+  if (!person) return null
+  const [en, pa, auto] = await Promise.all([
+    sb.from('debt_entries').select('*').eq('person_id', id).eq('owner_id', ctx.userId).order('entry_on').order('created_at'),
+    sb.from('debt_payments').select('*').eq('person_id', id).eq('owner_id', ctx.userId).order('paid_on').order('created_at'),
+    splitEntries(sb, ctx.userId, person.name as string, id),
+  ])
+  const entries = [...((en.data ?? []).map((r) => ({ ...r, amount: num(r.amount), share: num(r.share) })) as DebtEntry[]), ...auto].sort((a, b) => a.entry_on.localeCompare(b.entry_on))
+  return { person: person as DebtPerson, entries, payments: (pa.data ?? []).map((r) => ({ ...r, amount: num(r.amount) })) as DebtPayment[] }
 }
