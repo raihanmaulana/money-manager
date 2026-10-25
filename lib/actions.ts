@@ -2,7 +2,7 @@
 
 import { cookies } from 'next/headers'
 import { revalidatePath } from 'next/cache'
-import { isYm, planItems, ymAdd, ymLabel, ymOfDate } from './calc.ts'
+import { isYm, planItems, ymAdd, ymDiff, ymLabel, ymOfDate } from './calc.ts'
 import { DEMO } from './data.ts'
 import { queryPockets } from './pockets.ts'
 import { supabaseServer } from './supabase/server.ts'
@@ -287,18 +287,20 @@ export async function addBill(formData: FormData): Promise<string | void> {
   const name = text(formData.get('name'))
   const kind = text(formData.get('kind'), 10)
   const start_ym = text(formData.get('start_ym'), 7)
-  const endRaw = text(formData.get('months'), 3)
-  const months = Number(endRaw.replace(/\D/g, ''))
+  const end_ym = text(formData.get('end_ym'), 7)
   if (!name) return 'Nama wajib diisi.'
   if (!(KINDS as readonly string[]).includes(kind)) return 'Jenis tidak dikenal.'
   if (!isYm(start_ym)) return 'Bulan mulai tidak valid, pilih ulang bulannya.'
+  if (end_ym && !isYm(end_ym)) return 'Bulan akhir tidak valid, pilih ulang bulannya.'
+  if (end_ym && end_ym < start_ym) return 'Bulan akhir tidak boleh sebelum bulan mulai.'
+  const months = end_ym ? ymDiff(end_ym, start_ym) + 1 : 0
   const c = await me()
   if (!c) return done()
   const amount = money(formData.get('amount'))
   const { data: row, error } = await c.sb.from('bills').insert({
     owner_id: c.uid, name, kind, amount,
     due_day: Math.min(31, Math.max(1, Number(formData.get('due_day')) || 1)),
-    start_ym, end_ym: months > 0 ? ymAdd(start_ym, months - 1) : null,
+    start_ym, end_ym: end_ym || null,
     note: text(formData.get('note'), 120),
     min_payment: kind === 'kartu' ? Math.min(money(formData.get('min_payment')), amount) : 0,
     card_pocket_id: kind === 'kartu' ? await cardPocketOf(c, formData.get('card_pocket_id')) : null,

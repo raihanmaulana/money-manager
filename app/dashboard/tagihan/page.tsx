@@ -58,7 +58,7 @@ export default async function Tagihan() {
                 <BillKindFields cards={cards.map((c) => ({ id: c.id, name: c.name }))} />
                 <label className="field"><span>Jatuh tempo (tanggal)</span><input className="input" type="number" name="due_day" min={1} max={31} defaultValue={1} required /></label>
                 <label className="field"><span>Mulai bulan</span><input className="input" type="month" name="start_ym" defaultValue={ctx.ym} required pattern="\d{4}-\d{2}" /></label>
-                <label className="field"><span>Berapa bulan?</span><input className="input" type="number" name="months" min={1} max={120} placeholder="kosong = terus" /></label>
+                <label className="field"><span>Sampai bulan</span><input className="input" type="month" name="end_ym" pattern="\d{4}-\d{2}" /><small className="hint">Kosongkan kalau terus-menerus.</small></label>
                 <label className="field"><span>Catatan</span><input className="input" name="note" maxLength={120} /></label>
               </div>
               <Submit className="btn"><Plus aria-hidden /> Simpan</Submit>
