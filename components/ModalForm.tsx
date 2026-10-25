@@ -1,8 +1,16 @@
 'use client'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
+import { useFormStatus } from 'react-dom'
 import { useBusyFlag } from './Busy'
 import { useToast } from './Toast'
+
+/** Di dalam <form>: menandai sibuk selama form action berjalan (useFormStatus, bukan state biasa, agar langsung terlihat) dan jadi tombol simpan. */
+function SubmitBusy({ text }: { text: string }) {
+  const { pending } = useFormStatus()
+  useBusyFlag(pending, true)
+  return <button type="submit" className="btn" disabled={pending} aria-busy={pending}>{pending ? 'Menyimpan…' : text}</button>
+}
 
 /** Tombol yang membuka popup berisi formulir. Pesan error tampil di dalam popup; peringatan (⚠) tampil setelah tersimpan. */
 export function ModalForm({ trigger, triggerClass = 'btn small', title, intro, submitText = 'Simpan', action, children }: {
@@ -12,10 +20,8 @@ export function ModalForm({ trigger, triggerClass = 'btn small', title, intro, s
   const [open, setOpen] = useState(false)
   const [msg, setMsg] = useState('')
   const [saved, setSaved] = useState(false)
-  const [pending, setPending] = useState(false)
   const opener = useRef<HTMLButtonElement>(null)
   const card = useRef<HTMLDivElement>(null)
-  useBusyFlag(pending, true)
   const toast = useToast()
   const close = () => { setOpen(false); setMsg(''); setSaved(false); opener.current?.focus() }
 
@@ -46,10 +52,8 @@ export function ModalForm({ trigger, triggerClass = 'btn small', title, intro, s
             <h2>{title}</h2>
             {intro ? <div className="hint" style={{ marginBottom: 'var(--space-3)' }}>{intro}</div> : null}
             <form className="stack edit-form" action={async (fd) => {
-              setPending(true)
               let r: string | void
               try { r = await action(fd) } catch { r = 'Gagal menyimpan, coba lagi.' }
-              setPending(false)
               const m = typeof r === 'string' ? r : ''
               if (m && !m.startsWith('⚠')) { setMsg(m); return }
               if (m) { setMsg(m); setSaved(true); toast(m, 'warn'); return } // tersimpan, tapi ada peringatan: biarkan terbaca dulu
@@ -60,7 +64,7 @@ export function ModalForm({ trigger, triggerClass = 'btn small', title, intro, s
               {msg ? <p className={warn ? 'form-msg warn' : 'form-msg err'} role={warn ? 'status' : 'alert'}>{msg}</p> : null}
               <div className="confirm-actions">
                 {saved ? <button type="button" className="btn" onClick={close}>Mengerti</button>
-                  : <button type="submit" className="btn" disabled={pending} aria-busy={pending}>{pending ? 'Menyimpan…' : submitText}</button>}
+                  : <SubmitBusy text={submitText} />}
                 {saved ? null : <button type="button" className="btn ghost" onClick={close}>Batal</button>}
               </div>
             </form>
