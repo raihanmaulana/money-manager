@@ -7,7 +7,7 @@ const cell = (v: string | number) => {
   const s = String(v ?? '')
   return /[;"\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
 }
-const KIND = { tagihan: 'Tagihan rutin', cicilan: 'Cicilan', hutang: 'Hutang', kartu: 'Kartu kredit' } as const
+const KIND = { tagihan: 'Tagihan rutin', cicilan: 'Cicilan', hutang: 'Hutang', kartu: 'Kartu kredit', paylater: 'PayLater' } as const
 
 /** Unduh data bulan ini sebagai CSV (pemisah titik koma + BOM supaya langsung rapi di Excel Indonesia). */
 export async function GET(req: Request) {

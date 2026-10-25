@@ -15,14 +15,15 @@ import { ActionButton, InlineField, MoneyInput, QuickForm, Submit } from '@/comp
 
 export const metadata = { title: 'Tagihan' }
 
-const KIND = { tagihan: 'Tagihan rutin', cicilan: 'Cicilan', hutang: 'Hutang', kartu: 'Kartu kredit' } as const
-const KIND_ICON = { tagihan: Receipt, cicilan: Repeat, hutang: HandCoins, kartu: CreditCard } as const
+const KIND = { tagihan: 'Tagihan rutin', cicilan: 'Cicilan', hutang: 'Hutang', kartu: 'Kartu kredit', paylater: 'PayLater' } as const
+const KIND_ICON = { tagihan: Receipt, cicilan: Repeat, hutang: HandCoins, kartu: CreditCard, paylater: CalendarClock } as const
 
 export default async function Tagihan() {
   const ctx = await getCtx()
   const [data, { pockets }] = await Promise.all([loadMonth(ctx), loadPockets(ctx)])
   const spendable = pockets.filter((p) => !isCreditKind(p.kind))
   const cards = pockets.filter((p) => isCreditKind(p.kind))
+  const linkable = (kind: string) => cards.filter((c) => kind === 'kartu' ? c.kind === 'kredit' : kind === 'paylater' ? c.kind === 'paylater' : true)
   const pname = (id: string | null) => pockets.find((p) => p.id === id)?.name
   const rows = billRowsFor(data.bills, data.billMonths, ctx.ym)
   const s = summarize(data.income, data.budget, data.expenses, rows, ctx.today, ctx.ym)
@@ -47,6 +48,7 @@ export default async function Tagihan() {
             <div><b>{rp(live.filter((r) => r.bill.kind === 'cicilan').reduce((t, r) => t + r.amount, 0))}</b><span>cicilan</span></div>
             <div><b>{rp(live.filter((r) => r.bill.kind === 'hutang').reduce((t, r) => t + r.amount, 0))}</b><span>hutang</span></div>
             <div><b>{rp(live.filter((r) => r.bill.kind === 'kartu').reduce((t, r) => t + r.amount, 0))}</b><span>kartu kredit</span></div>
+            <div><b>{rp(live.filter((r) => r.bill.kind === 'paylater').reduce((t, r) => t + r.amount, 0))}</b><span>PayLater</span></div>
           </div>
         </section>
 
@@ -56,7 +58,7 @@ export default async function Tagihan() {
             <QuickForm action={addBill} className="stack">
               <div className="form-grid">
                 <label className="field full"><span>Nama</span><input className="input" name="name" required maxLength={80} placeholder="mis. Cicilan HP atau Pinjam ke teman" /></label>
-                <BillKindFields cards={cards.map((c) => ({ id: c.id, name: c.name }))} />
+                <BillKindFields cards={cards.map((c) => ({ id: c.id, name: c.name, kind: c.kind }))} />
                 <label className="field"><span>Jatuh tempo (tanggal)</span><input className="input" type="number" name="due_day" min={1} max={31} defaultValue={1} required /></label>
                 <label className="field"><span>Mulai bulan</span><input className="input" type="month" name="start_ym" defaultValue={ctx.ym} required pattern="\d{4}-\d{2}" /></label>
                 <label className="field"><span>Sampai bulan</span><input className="input" type="month" name="end_ym" pattern="\d{4}-\d{2}" /><small className="hint">Kosongkan kalau terus-menerus.</small></label>
@@ -143,10 +145,10 @@ export default async function Tagihan() {
                                 <span style={{ width: '9.5rem' }}><InlineField id={r.bill.id} field="min_payment" value={r.bill.min_payment ?? 0} money action={setBillMin} label="Pembayaran minimum" /></span>
                               </div>
                             ) : null}
-                            {r.bill.kind !== 'hutang' && cards.length ? (
+                            {r.bill.kind !== 'hutang' && linkable(r.bill.kind).length ? (
                               <div className="cluster">
                                 <span className="hint">Terhubung ke</span>
-                                <PocketInline table="bills" id={r.bill.id} value={r.bill.card_pocket_id} pockets={cards} action={setBillCardPocket} label="Kartu kredit atau PayLater" emptyLabel="Tidak terhubung" />
+                                <PocketInline table="bills" id={r.bill.id} value={r.bill.card_pocket_id} pockets={linkable(r.bill.kind)} action={setBillCardPocket} label={r.bill.kind === 'paylater' ? 'PayLater' : r.bill.kind === 'kartu' ? 'Kartu kredit' : 'Kartu kredit atau PayLater'} emptyLabel="Tidak terhubung" />
                               </div>
                             ) : null}
                             {r.bill.kind !== 'kartu' && r.bill.kind !== 'hutang' && r.bill.card_pocket_id ? (

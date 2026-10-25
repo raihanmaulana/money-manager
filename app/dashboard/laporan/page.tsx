@@ -6,7 +6,7 @@ import { PrintButton } from '@/components/PrintButton'
 
 export const metadata = { title: 'Laporan bulanan' }
 
-const KIND = { tagihan: 'Tagihan rutin', cicilan: 'Cicilan', hutang: 'Hutang', kartu: 'Kartu kredit' } as const
+const KIND = { tagihan: 'Tagihan rutin', cicilan: 'Cicilan', hutang: 'Hutang', kartu: 'Kartu kredit', paylater: 'PayLater' } as const
 const tgl = (iso: string) => `${Number(iso.slice(8))}/${iso.slice(5, 7)}`
 
 export default async function Laporan() {

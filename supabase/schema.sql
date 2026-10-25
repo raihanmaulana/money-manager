@@ -294,3 +294,6 @@ begin
     execute format('create policy "%s_owner" on public.%I for all using (owner_id = auth.uid()) with check (owner_id = auth.uid())', t, t);
   end loop;
 end $$;
+
+alter table public.bills drop constraint if exists bills_kind_check;
+alter table public.bills add constraint bills_kind_check check (kind in ('tagihan','cicilan','hutang','kartu','paylater'));

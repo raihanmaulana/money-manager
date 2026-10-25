@@ -1,5 +1,5 @@
 export type Grp = 'kebutuhan' | 'gaya_hidup' | 'tabungan' | 'investasi'
-export type BillKind = 'tagihan' | 'cicilan' | 'hutang' | 'kartu'
+export type BillKind = 'tagihan' | 'cicilan' | 'hutang' | 'kartu' | 'paylater'
 
 export type IncomeItem = { id: string; ym: string; label: string; kind: 'masuk' | 'potong'; amount: number; sort: number; pocket_id?: string | null }
 export type BudgetItem = { id: string; ym: string; grp: Grp; label: string; amount: number; sort: number }

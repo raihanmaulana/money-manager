@@ -11,7 +11,7 @@ import { sendTelegram } from './telegram.ts'
 import { fmtRp, fullSyncEvents, logEvent, pocketEvents, postEvents, queue, rowEvent, sheetsEnabled, summaryEvent, type SheetEvent, type Table } from './sheets.ts'
 
 const GRP = ['kebutuhan', 'gaya_hidup', 'tabungan', 'investasi'] as const
-const KINDS = ['tagihan', 'cicilan', 'hutang', 'kartu'] as const
+const KINDS = ['tagihan', 'cicilan', 'hutang', 'kartu', 'paylater'] as const
 const POCKET_KINDS = ['bank', 'ewallet', 'tunai', 'lainnya', 'kredit', 'paylater'] as const
 
 const money = (v: FormDataEntryValue | string | number | null | undefined) => {
@@ -30,7 +30,7 @@ async function me() {
 }
 type C = NonNullable<Awaited<ReturnType<typeof me>>>
 
-const KIND_NAME: Record<string, string> = { tagihan: 'tagihan rutin', cicilan: 'cicilan', hutang: 'hutang', kartu: 'kartu kredit' }
+const KIND_NAME: Record<string, string> = { tagihan: 'tagihan rutin', cicilan: 'cicilan', hutang: 'hutang', kartu: 'kartu kredit', paylater: 'PayLater' }
 
 /** Salin perubahan ke Google Sheet (bila diatur): baris data, ringkasan bulan, dan log perubahan. */
 async function mirror(c: C, items: { table: Table; id: string; key?: string }[], aksi: string, tabel: string, ringkasan: string, months: string[] = [], extra: SheetEvent[] = []) {
@@ -75,18 +75,21 @@ async function pocketOf(c: C, raw: FormDataEntryValue | null): Promise<string | 
   const { data } = await c.sb.from('pockets').select('id').eq('id', id).eq('owner_id', c.uid).maybeSingle()
   return data ? (data.id as string) : null
 }
-/** Kartu kredit (sumber dana jenis kredit) yang dipilih untuk tagihan kartu; hanya diterima kalau milik pengguna ini. */
-async function cardPocketOf(c: C, raw: FormDataEntryValue | null): Promise<string | null> {
+/** Sumber dana berlimit yang boleh dihubungkan ke tagihan jenis tertentu: kartu → kartu kredit, PayLater → PayLater, lainnya → keduanya. */
+const linkKinds = (billKind: string) => billKind === 'kartu' ? ['kredit'] : billKind === 'paylater' ? ['paylater'] : ['kredit', 'paylater']
+async function cardPocketOf(c: C, raw: FormDataEntryValue | null, billKind = 'tagihan'): Promise<string | null> {
   const id = text(raw, 40)
   if (!id) return null
-  const { data } = await c.sb.from('pockets').select('id').eq('id', id).eq('owner_id', c.uid).in('kind', ['kredit', 'paylater']).maybeSingle()
+  const { data } = await c.sb.from('pockets').select('id').eq('id', id).eq('owner_id', c.uid).in('kind', linkKinds(billKind)).maybeSingle()
   return data ? (data.id as string) : null
 }
-/** Hubungkan tagihan kartu ke sumber dana kartu kreditnya (dipakai PocketInline). */
+/** Hubungkan tagihan ke sumber dana kartu kredit / PayLater (dipakai PocketInline). */
 export async function setBillCardPocket(_table: string, billId: string, _field: string, value: string) {
   const c = await me()
   if (!c) return done()
-  const pid = await cardPocketOf(c, value)
+  const { data: b } = await c.sb.from('bills').select('kind').eq('id', billId).eq('owner_id', c.uid).maybeSingle()
+  if (!b || b.kind === 'hutang') return done()
+  const pid = await cardPocketOf(c, value, b.kind as string)
   await c.sb.from('bills').update({ card_pocket_id: pid }).eq('id', billId).eq('owner_id', c.uid)
   done()
 }
@@ -327,7 +330,7 @@ export async function addBill(formData: FormData): Promise<string | void> {
     start_ym, end_ym: end_ym || null,
     note: text(formData.get('note'), 120),
     min_payment: kind === 'kartu' ? Math.min(money(formData.get('min_payment')), amount) : 0,
-    card_pocket_id: kind === 'hutang' ? null : await cardPocketOf(c, formData.get('card_pocket_id')),
+    card_pocket_id: kind === 'hutang' ? null : await cardPocketOf(c, formData.get('card_pocket_id'), kind),
     principal: kind === 'kartu' || kind === 'hutang' ? 0 : Math.min(money(formData.get('principal')), amount),
   }).select('id').single()
   if (error || !row) { console.error('[tagihan] gagal simpan', error); return `Gagal menyimpan: ${error?.message ?? 'tidak ada data kembali'}` }
