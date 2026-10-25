@@ -231,11 +231,13 @@ export function pocketBalances(
   const bal = new Map<string, number>(pockets.map((p) => [p.id, p.kind === 'kredit' ? -p.opening_balance : p.opening_balance]))
   const add = (id: string | null | undefined, n: number) => { if (id && bal.has(id)) bal.set(id, bal.get(id)! + n) }
   for (const i of income) if (i.ym <= today.ym) add(i.pocket_id, i.kind === 'masuk' ? i.amount : -i.amount)
-  for (const e of expenses) if (e.spent_on <= today.iso) add(e.pocket_id, -e.amount)
+  const since = new Map(pockets.filter((p) => p.kind === 'kredit' && p.credit_since).map((p) => [p.id, p.credit_since!]))
+  const counts = (id: string | null | undefined, on: string) => !id || !since.has(id) || on >= since.get(id)!
+  for (const e of expenses) if (e.spent_on <= today.iso && counts(e.pocket_id, e.spent_on)) add(e.pocket_id, -e.amount)
   for (const d of deposits) if (d.ym <= today.ym) add(d.pocket_id, -d.amount)
   for (const p of payments) if (p.paid_on <= today.iso) add(p.pocket_id, -p.amount)
   for (const a of adjustments) if (a.adjusted_on <= today.iso) add(a.pocket_id, a.amount)
-  for (const c of cardPays) if (c.paid_on <= today.iso) add(c.card_pocket_id, c.amount)
+  for (const c of cardPays) if (c.paid_on <= today.iso && counts(c.card_pocket_id, c.paid_on)) add(c.card_pocket_id, c.amount)
   for (const t of transfers) if (t.moved_on <= today.iso) { add(t.from_pocket, -(t.amount + (t.fee ?? 0))); add(t.to_pocket, t.amount) }
   return pockets.map((p) => ({ ...p, saldo: bal.get(p.id) ?? 0 }))
 }

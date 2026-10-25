@@ -11,7 +11,7 @@ export type GoalDeposit = { id: string; goal_id: string; ym: string; amount: num
 
 export type PocketKind = 'bank' | 'ewallet' | 'tunai' | 'lainnya' | 'kredit'
 /** Untuk kartu kredit: opening_balance = pemakaian awal (terpakai), credit_limit = limit; saldo = −terpakai. */
-export type Pocket = { id: string; name: string; kind: PocketKind; opening_balance: number; sort: number; credit_limit?: number }
+export type Pocket = { id: string; name: string; kind: PocketKind; opening_balance: number; sort: number; credit_limit?: number; credit_since?: string | null }
 export type Transfer = { id: string; from_pocket: string; to_pocket: string; amount: number; fee?: number; moved_on: string; note: string }
 export type BillPayment = { id: string; bill_id: string; ym: string; amount: number; pocket_id: string | null; paid_on: string }
 export type PocketAdjustment = { id: string; pocket_id: string; amount: number; note: string; adjusted_on: string }

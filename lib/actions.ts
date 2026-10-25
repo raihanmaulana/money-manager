@@ -556,18 +556,19 @@ export async function addPocket(formData: FormData) {
   if (row) await mirror(c, [{ table: 'pockets', id: row.id }], 'Tambah', 'Sumber Dana', `${name} (${kind}), ${kind === 'kredit' ? `limit ${fmtRp(credit_limit)}, terpakai ${fmtRp(opening)}` : `saldo awal ${fmtRp(opening)}`}`)
   done()
 }
-export async function updatePocket(id: string, field: 'name' | 'opening_balance' | 'kind' | 'credit_limit', value: string) {
+export async function updatePocket(id: string, field: 'name' | 'opening_balance' | 'kind' | 'credit_limit' | 'credit_since', value: string) {
   const c = await me()
   if (!c) return done()
+  if (field === 'credit_since' && !/^\d{4}-\d{2}-\d{2}$/.test(value)) return
   if (field === 'kind' && !(POCKET_KINDS as readonly string[]).includes(value)) return
-  const patch = field === 'name' ? { name: text(value, 40) } : field === 'kind' ? { kind: value } : field === 'credit_limit' ? { credit_limit: money(value) } : { opening_balance: money(value) }
+  const patch = field === 'name' ? { name: text(value, 40) } : field === 'kind' ? { kind: value } : field === 'credit_limit' ? { credit_limit: money(value) } : field === 'credit_since' ? { credit_since: value } : { opening_balance: money(value) }
   if (field === 'name' && !(patch as { name: string }).name) return
   const old = await prev(c, 'pockets' as Table, id)
   if (!old) return
   await c.sb.from('pockets').update(patch).eq('id', id).eq('owner_id', c.uid)
   const linked = field === 'name' ? await linkedRows(c, id) : []
   await mirror(c, [{ table: 'pockets', id }, ...linked], 'Ubah', 'Sumber Dana', field === 'name'
-    ? `"${old.name}" → "${text(value, 40)}"` : field === 'credit_limit' ? `${old.name}: limit → ${fmtRp(money(value))}` : field === 'kind' ? `${old.name}: jenis ${old.kind} → ${value}` : `${old.name}: saldo awal ${fmtRp(Number(old.opening_balance))} → ${fmtRp(money(value))}`)
+    ? `"${old.name}" → "${text(value, 40)}"` : field === 'credit_limit' ? `${old.name}: limit → ${fmtRp(money(value))}` : field === 'credit_since' ? `${old.name}: dihitung sejak ${value}` : field === 'kind' ? `${old.name}: jenis ${old.kind} → ${value}` : `${old.name}: saldo awal ${fmtRp(Number(old.opening_balance))} → ${fmtRp(money(value))}`)
   done()
 }
 export async function deletePocket(id: string) {

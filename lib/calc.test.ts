@@ -167,3 +167,12 @@ test('kartu kredit: sisa bulan lalu terbawa ke bulan berikutnya', () => {
   const baru = billRowsFor([card], [...bms, { bill_id: 'k', ym: '2026-11', amount_override: 1_700_000, skipped: false, paid: false, paid_amount: 0 }], '2026-11')[0]
   assert.equal(baru.amount, 1_700_000) // nominal bulan itu diatur sendiri (sisa + belanja baru)
 })
+
+test('kartu kredit: pembayaran dan belanja sebelum "dihitung sejak" tidak dihitung ulang', async () => {
+  const { pocketBalances } = await import('./calc.ts')
+  const k = { id: 'k', name: 'BRI CC', kind: 'kredit', opening_balance: 1_647_166, sort: 0, credit_limit: 5_000_000, credit_since: '2026-10-25' } as any
+  const today = { ym: '2026-10', iso: '2026-10-26' }
+  const r = pocketBalances([k], [], [{ spent_on: '2026-10-20', amount: 70_000, pocket_id: 'k' }, { spent_on: '2026-10-26', amount: 30_000, pocket_id: 'k' }], [], [], today, [], [],
+    [{ paid_on: '2026-10-10', amount: 1_000_000, card_pocket_id: 'k' }, { paid_on: '2026-10-26', amount: 500_000, card_pocket_id: 'k' }])
+  assert.equal(r[0].saldo, -1_647_166 - 30_000 + 500_000)
+})

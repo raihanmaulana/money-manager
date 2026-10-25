@@ -11,6 +11,7 @@ import { TransferEditor } from '@/components/TransferEditor'
 import { ModalForm } from '@/components/ModalForm'
 import { ReconcileFields } from '@/components/ReconcileFields'
 import { PocketKindFields } from '@/components/PocketKindFields'
+import { SinceField } from '@/components/SinceField'
 import { KindSelect } from '@/components/KindSelect'
 import { ConfirmButton } from '@/components/ConfirmButton'
 import type { PocketKind } from '@/lib/types'
@@ -83,10 +84,14 @@ export default async function SumberDana() {
                     <div className={`meter ${limit > 0 && used > limit ? 'over' : ''}`} role="img" aria-label={`Terpakai ${pct} persen dari limit`}><i style={{ width: `${pct}%` }} /></div>
                     <p className="hint">Terpakai {rp(used)} dari limit {limit > 0 ? rp(limit) : 'belum diisi'}</p>
                     {limit > 0 && used > limit ? <p className="form-msg err">Pemakaian melebihi limit sebesar {rp(used - limit)}.</p> : null}
-                    <p className="hint">Hanya dokumentasi. Tidak masuk anggaran atau total sumber dana. Bayar tagihan kartu untuk mengembalikan limit.</p>
+                    <p className="hint">Hanya dokumentasi. Tidak masuk anggaran atau total sumber dana. Pembayaran tagihan dan belanja kartu dihitung mulai tanggal "Dihitung sejak"; sebelum itu dianggap sudah termasuk di Terpakai awal.</p>
                     <div className="row" style={{ border: 0, padding: 0, marginTop: 'var(--space-3)' }}>
                       <span className="grow hint" style={{ whiteSpace: 'nowrap' }}>Limit</span>
                       <span style={{ width: '10rem' }}><InlineField id={p.id} field="credit_limit" value={limit} money action={updatePocket} label={`Limit ${p.name}`} /></span>
+                    </div>
+                    <div className="row" style={{ border: 0, padding: 0 }}>
+                      <span className="grow hint" style={{ whiteSpace: 'nowrap' }}>Dihitung sejak</span>
+                      <span style={{ width: '10rem' }}><SinceField id={p.id} value={p.credit_since ?? ''} action={updatePocket} label={`Dihitung sejak ${p.name}`} /></span>
                     </div>
                     <div className="row" style={{ border: 0, padding: 0 }}>
                       <span className="grow hint" style={{ whiteSpace: 'nowrap' }}>Terpakai awal</span>

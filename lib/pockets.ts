@@ -17,7 +17,7 @@ export async function queryPockets(sb: SupabaseClient, owner: string, today: { y
     sb.from('pocket_adjustments').select('*').eq('owner_id', owner).order('adjusted_on', { ascending: false }).order('created_at', { ascending: false }),
     sb.from('bills').select('id,card_pocket_id').eq('owner_id', owner).not('card_pocket_id', 'is', null),
   ])
-  const pockets = (p.data ?? []).map((r) => ({ ...r, opening_balance: num(r.opening_balance), credit_limit: num(r.credit_limit) })) as Pocket[]
+  const pockets = (p.data ?? []).map((r) => ({ ...r, opening_balance: num(r.opening_balance), credit_limit: num(r.credit_limit), credit_since: (r.credit_since as string | null) ?? (typeof r.created_at === 'string' ? r.created_at.slice(0, 10) : null) })) as Pocket[]
   const transfers = nums(t.data).map((r) => ({ ...r, fee: num(r.fee) })) as Transfer[]
   const adjustments = nums(adj.data) as PocketAdjustment[]
   const cardOf = new Map((bl.data ?? []).map((b) => [b.id as string, b.card_pocket_id as string]))
