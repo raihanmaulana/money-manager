@@ -23,7 +23,7 @@ const TAB: Record<Table, string> = {
   bill_months: 'Status Tagihan', goals: 'Target Tabungan', goal_deposits: 'Setoran Tabungan',
   pockets: 'Sumber Dana', pocket_transfers: 'Pindah Dana',
 }
-const POCKET_KIND: Record<string, string> = { bank: 'Bank', ewallet: 'E-wallet', tunai: 'Tunai', lainnya: 'Lainnya' }
+const POCKET_KIND: Record<string, string> = { bank: 'Bank', ewallet: 'E-wallet', tunai: 'Tunai', lainnya: 'Lainnya', kredit: 'Kartu kredit', paylater: 'PayLater' }
 const GRP_LABEL: Record<string, string> = { kebutuhan: 'Kebutuhan pokok', gaya_hidup: 'Gaya hidup', tabungan: 'Tabungan', investasi: 'Investasi' }
 const KIND_LABEL: Record<string, string> = { tagihan: 'Tagihan rutin', cicilan: 'Cicilan', hutang: 'Hutang', kartu: 'Kartu kredit' }
 export const SUMMARY_TAB = 'Ringkasan Bulanan'

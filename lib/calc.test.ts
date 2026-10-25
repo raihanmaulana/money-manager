@@ -176,3 +176,15 @@ test('kartu kredit: pembayaran dan belanja sebelum "dihitung sejak" tidak dihitu
     [{ paid_on: '2026-10-10', amount: 1_000_000, card_pocket_id: 'k' }, { paid_on: '2026-10-26', amount: 500_000, card_pocket_id: 'k' }])
   assert.equal(r[0].saldo, -1_647_166 - 30_000 + 500_000)
 })
+
+test('cardRestores: pokok per bulan membatasi pemulihan limit cicilan', async () => {
+  const { cardRestores } = await import('./calc.ts')
+  const bills = [{ id: 'c', kind: 'cicilan', principal: 500_000, card_pocket_id: 'p' }, { id: 'k', kind: 'kartu', principal: 1, card_pocket_id: 'p' }, { id: 'x', kind: 'tagihan' }]
+  const r = cardRestores([
+    { bill_id: 'c', ym: '2026-10', paid_on: '2026-10-05', amount: 566_667 },
+    { bill_id: 'c', ym: '2026-10', paid_on: '2026-10-20', amount: 100_000 },
+    { bill_id: 'k', ym: '2026-10', paid_on: '2026-10-06', amount: 1_000_000 },
+    { bill_id: 'x', ym: '2026-10', paid_on: '2026-10-07', amount: 9 },
+  ], bills)
+  assert.equal(r.reduce((t, x) => t + x.amount, 0), 500_000 + 1_000_000)
+})

@@ -1,4 +1,4 @@
-import { Banknote, Building2, CreditCard, Smartphone, Wallet } from 'lucide-react'
+import { Banknote, Building2, CalendarClock, CreditCard, Smartphone, Wallet } from 'lucide-react'
 import type { PocketKind } from '@/lib/types'
 
 /** Merek yang dikenali dari nama sumber dana. Hanya warna + singkatan, bukan logo asli. */
@@ -20,7 +20,7 @@ const BRANDS: { key: string; re: RegExp; abbr: string }[] = [
   { key: 'linkaja', re: /link\s?aja/i, abbr: 'LA' },
 ]
 
-const KIND_ICON = { bank: Building2, ewallet: Smartphone, tunai: Banknote, lainnya: Wallet, kredit: CreditCard } as const
+const KIND_ICON = { bank: Building2, ewallet: Smartphone, tunai: Banknote, lainnya: Wallet, kredit: CreditCard, paylater: CalendarClock } as const
 
 export function brandOf(name: string) {
   return BRANDS.find((b) => b.re.test(name)) ?? null

@@ -1,4 +1,5 @@
 import { TileTitle } from '@/components/TileTitle'
+import { isCreditKind } from '@/lib/types'
 import { CalendarCheck, PiggyBank, Plus, Sparkles } from 'lucide-react'
 import { getCtx, loadGoals, loadMonth, loadPockets } from '@/lib/data'
 import { billRowsFor, goalPlan, rp, summarize, ymLabel } from '@/lib/calc'
@@ -78,7 +79,7 @@ export default async function Tabungan() {
                 <ul className="rows" style={{ marginTop: 'var(--space-3)' }}>
                   {list.map((d) => (
                     <li key={d.id}><span className="grow"><span className="name">{d.amount < 0 ? 'Tarik' : 'Setor'}</span><span className="meta">{ymLabel(d.ym)}{d.note ? ` · ${d.note}` : ''}</span>
-                      {pockets.length ? <PocketInline table="goal_deposits" id={d.id} value={d.pocket_id} pockets={pockets.filter((p) => p.kind !== 'kredit')} action={setRowPocket} /> : null}</span>
+                      {pockets.length ? <PocketInline table="goal_deposits" id={d.id} value={d.pocket_id} pockets={pockets.filter((p) => !isCreditKind(p.kind))} action={setRowPocket} /> : null}</span>
                       <span className="amt">{rp(Math.abs(d.amount))}</span>
                       <ActionButton action={deleteDeposit} args={[d.id]} label="Hapus setoran" /></li>
                   ))}
@@ -90,7 +91,7 @@ export default async function Tabungan() {
                     <input type="hidden" name="goal_id" value={g.id} /><input type="hidden" name="ym" value={ctx.ym} />
                     <select className="select" name="dir" style={{ width: '6.5rem' }} aria-label="Setor atau tarik"><option value="setor">Setor</option><option value="tarik">Tarik</option></select>
                     <div style={{ flex: '1 1 8rem' }}><MoneyInput name="amount" label="Jumlah" required /></div>
-                    {pockets.length ? <select className="select" name="pocket_id" defaultValue="" style={{ width: 'auto', minWidth: '11rem' }} aria-label="Sumber dana"><option value="">Tanpa sumber</option>{pockets.filter((p) => p.kind !== 'kredit').map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select> : null}
+                    {pockets.length ? <select className="select" name="pocket_id" defaultValue="" style={{ width: 'auto', minWidth: '11rem' }} aria-label="Sumber dana"><option value="">Tanpa sumber</option>{pockets.filter((p) => !isCreditKind(p.kind)).map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select> : null}
                     <Submit className="btn small">Simpan</Submit>
                   </QuickForm>
                   <div style={{ marginTop: 'var(--space-3)' }}><ActionButton action={deleteGoal} args={[g.id]} label={`Hapus target ${g.name}`} icon={false} text="Hapus target ini" className="btn small ghost" /></div>

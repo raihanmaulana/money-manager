@@ -234,3 +234,7 @@ alter table public.pockets add column if not exists credit_limit bigint not null
 alter table public.bills add column if not exists card_pocket_id uuid references public.pockets(id) on delete set null;
 
 alter table public.pockets add column if not exists credit_since date;
+
+alter table public.pockets drop constraint if exists pockets_kind_check;
+alter table public.pockets add constraint pockets_kind_check check (kind in ('bank','ewallet','tunai','lainnya','kredit','paylater'));
+alter table public.bills add column if not exists principal bigint not null default 0;

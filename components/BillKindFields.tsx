@@ -5,6 +5,7 @@ import { MoneyInput } from './Fields'
 /** Pilihan jenis + kolom minimum bayar yang hanya muncul untuk kartu kredit. */
 export function BillKindFields({ cards = [] }: { cards?: { id: string; name: string }[] }) {
   const [kind, setKind] = useState('tagihan')
+  const [card, setCard] = useState('')
   return (
     <>
       <label className="field"><span>Jenis</span>
@@ -20,10 +21,16 @@ export function BillKindFields({ cards = [] }: { cards?: { id: string; name: str
           <small className="hint">Bayar di bawah ini bisa kena denda telat. Tagihan tiap bulan bisa diubah di daftar.</small>
         </label>
       ) : null}
-      {kind === 'kartu' && cards.length ? (
-        <label className="field full"><span>Hubungkan ke kartu</span>
-          <select className="select" name="card_pocket_id" defaultValue=""><option value="">Tidak terhubung</option>{cards.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
-          <small className="hint">Bayar tagihan ini akan mengembalikan limit kartu di Sumber dana.</small>
+      {kind !== 'hutang' && cards.length ? (
+        <label className="field full"><span>Hubungkan ke kartu kredit atau PayLater</span>
+          <select className="select" name="card_pocket_id" value={card} onChange={(e) => setCard(e.target.value)}><option value="">Tidak terhubung</option>{cards.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
+          <small className="hint">Membayar tagihan ini akan mengembalikan limit di Sumber dana.</small>
+        </label>
+      ) : null}
+      {kind !== 'kartu' && kind !== 'hutang' && card ? (
+        <label className="field full"><span>Pokok per bulan (opsional)</span>
+          <MoneyInput name="principal" label="Pokok per bulan" />
+          <small className="hint">Isi kalau cicilan memuat bunga atau admin. Limit hanya pulih sebesar pokok ini tiap bulan. Kosong = seluruh nominal.</small>
         </label>
       ) : null}
     </>

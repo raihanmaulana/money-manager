@@ -1,9 +1,10 @@
 import { TileTitle } from '@/components/TileTitle'
+import { isCreditKind } from '@/lib/types'
 import { Download, CalendarClock, CreditCard, HandCoins, ListChecks, Plus, Receipt, Repeat } from 'lucide-react'
 import { getCtx, loadMonth, loadPockets } from '@/lib/data'
 import { billRowsFor, rp, summarize, ymLabel } from '@/lib/calc'
 import { BillKindFields } from '@/components/BillKindFields'
-import { addBill, changeBillFrom, deleteBill, deleteBillPayment, payBill, setBillCardPocket, setBillMin, setBillAmountThisMonth, setBillSkipped, stopBill, undoBillPaid } from '@/lib/actions'
+import { addBill, changeBillFrom, deleteBill, deleteBillPayment, payBill, setBillCardPocket, setBillPrincipal, setBillMin, setBillAmountThisMonth, setBillSkipped, stopBill, undoBillPaid } from '@/lib/actions'
 import { ModalForm } from '@/components/ModalForm'
 import { DatePicker } from '@/components/DatePicker'
 import { PocketInline } from '@/components/PocketInline'
@@ -20,8 +21,8 @@ const KIND_ICON = { tagihan: Receipt, cicilan: Repeat, hutang: HandCoins, kartu:
 export default async function Tagihan() {
   const ctx = await getCtx()
   const [data, { pockets }] = await Promise.all([loadMonth(ctx), loadPockets(ctx)])
-  const spendable = pockets.filter((p) => p.kind !== 'kredit')
-  const cards = pockets.filter((p) => p.kind === 'kredit')
+  const spendable = pockets.filter((p) => !isCreditKind(p.kind))
+  const cards = pockets.filter((p) => isCreditKind(p.kind))
   const pname = (id: string | null) => pockets.find((p) => p.id === id)?.name
   const rows = billRowsFor(data.bills, data.billMonths, ctx.ym)
   const s = summarize(data.income, data.budget, data.expenses, rows, ctx.today, ctx.ym)
@@ -142,10 +143,16 @@ export default async function Tagihan() {
                                 <span style={{ width: '9.5rem' }}><InlineField id={r.bill.id} field="min_payment" value={r.bill.min_payment ?? 0} money action={setBillMin} label="Pembayaran minimum" /></span>
                               </div>
                             ) : null}
-                            {r.isCard && cards.length ? (
+                            {r.bill.kind !== 'hutang' && cards.length ? (
                               <div className="cluster">
-                                <span className="hint">Kartu kredit</span>
-                                <PocketInline table="bills" id={r.bill.id} value={r.bill.card_pocket_id} pockets={cards} action={setBillCardPocket} label="Sumber dana kartu kredit" emptyLabel="Tidak terhubung" />
+                                <span className="hint">Terhubung ke</span>
+                                <PocketInline table="bills" id={r.bill.id} value={r.bill.card_pocket_id} pockets={cards} action={setBillCardPocket} label="Kartu kredit atau PayLater" emptyLabel="Tidak terhubung" />
+                              </div>
+                            ) : null}
+                            {r.bill.kind !== 'kartu' && r.bill.kind !== 'hutang' && r.bill.card_pocket_id ? (
+                              <div className="cluster">
+                                <span className="hint">Pokok per bulan</span>
+                                <span style={{ width: '9.5rem' }}><InlineField id={r.bill.id} field="principal" value={r.bill.principal ?? 0} money action={setBillPrincipal} label="Pokok per bulan" /></span>
                               </div>
                             ) : null}
                             <QuickForm action={changeBillFrom} className="cluster" resetOnDone={false}>

@@ -1,6 +1,6 @@
 // Pengambilan data sumber dana + saldonya. Dipakai halaman (lib/data.ts) dan sinkron Sheet (lib/sheets.ts).
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { pocketBalances } from './calc.ts'
+import { cardRestores, pocketBalances } from './calc.ts'
 import type { Pocket, PocketAdjustment, PocketView, Transfer } from './types.ts'
 
 const num = (v: unknown) => Number(v ?? 0)
@@ -13,15 +13,14 @@ export async function queryPockets(sb: SupabaseClient, owner: string, today: { y
     sb.from('income_items').select('ym,kind,amount,pocket_id').eq('owner_id', owner).not('pocket_id', 'is', null),
     sb.from('expenses').select('spent_on,amount,pocket_id').eq('owner_id', owner).not('pocket_id', 'is', null),
     sb.from('goal_deposits').select('ym,amount,pocket_id').eq('owner_id', owner).not('pocket_id', 'is', null),
-    sb.from('bill_payments').select('paid_on,amount,pocket_id,bill_id').eq('owner_id', owner).not('pocket_id', 'is', null),
+    sb.from('bill_payments').select('paid_on,amount,pocket_id,bill_id,ym').eq('owner_id', owner),
     sb.from('pocket_adjustments').select('*').eq('owner_id', owner).order('adjusted_on', { ascending: false }).order('created_at', { ascending: false }),
-    sb.from('bills').select('id,card_pocket_id').eq('owner_id', owner).not('card_pocket_id', 'is', null),
+    sb.from('bills').select('id,kind,principal,card_pocket_id').eq('owner_id', owner).not('card_pocket_id', 'is', null),
   ])
   const pockets = (p.data ?? []).map((r) => ({ ...r, opening_balance: num(r.opening_balance), credit_limit: num(r.credit_limit), credit_since: (r.credit_since as string | null) ?? (typeof r.created_at === 'string' ? r.created_at.slice(0, 10) : null) })) as Pocket[]
   const transfers = nums(t.data).map((r) => ({ ...r, fee: num(r.fee) })) as Transfer[]
   const adjustments = nums(adj.data) as PocketAdjustment[]
-  const cardOf = new Map((bl.data ?? []).map((b) => [b.id as string, b.card_pocket_id as string]))
   const payRows = nums(pay.data)
-  const cardPays = payRows.filter((x) => cardOf.has(x.bill_id)).map((x) => ({ paid_on: x.paid_on as string, amount: x.amount as number, card_pocket_id: cardOf.get(x.bill_id)! }))
+  const cardPays = cardRestores(payRows as any, (bl.data ?? []).map((b) => ({ id: b.id as string, kind: b.kind as string, principal: Number(b.principal ?? 0), card_pocket_id: b.card_pocket_id as string })))
   return { pockets: pocketBalances(pockets, nums(inc.data), nums(exp.data), nums(dep.data), transfers, today, payRows, adjustments, cardPays), transfers, adjustments }
 }

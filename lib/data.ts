@@ -65,7 +65,7 @@ export async function loadMonth(ctx: Ctx): Promise<MonthData> {
     sb.from('bills').select('*').eq('owner_id', o).order('due_day'),
     sb.from('bill_months').select('*').eq('owner_id', o).eq('ym', ym),
     sb.from('bill_payments').select('*').eq('owner_id', o).eq('ym', ym).order('paid_on').order('created_at'),
-    sb.from('pockets').select('id').eq('owner_id', o).eq('kind', 'kredit'),
+    sb.from('pockets').select('id').eq('owner_id', o).in('kind', ['kredit', 'paylater']),
   ])
   const credit = new Set((creditP.data ?? []).map((x) => x.id as string))
   // Kartu kredit membawa sisa tagihan antarbulan, jadi butuh status bulan-bulan sebelumnya juga.

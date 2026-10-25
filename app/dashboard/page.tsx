@@ -1,4 +1,5 @@
 import { TileTitle } from '@/components/TileTitle'
+import { isCreditKind } from '@/lib/types'
 import Link from 'next/link'
 import { BellRing, HeartPulse, PieChart, History, PenLine, Plus, Receipt, Waypoints } from 'lucide-react'
 import { getCtx, loadMonth, loadNeeds, loadPockets } from '@/lib/data'
@@ -61,7 +62,7 @@ export default async function Beranda() {
       else if (gap <= 3) alerts.push({ tone: 'warn', text: `${r.bill.name} jatuh tempo ${gap === 0 ? 'hari ini' : gap === 1 ? 'besok' : `${gap} hari lagi`} (sisa ${sisa})`, href: '/dashboard/tagihan' })
     }
   }
-  for (const p of pockets) if (p.kind === 'kredit') { if ((p.credit_limit ?? 0) > 0 && -p.saldo > (p.credit_limit ?? 0)) alerts.push({ tone: 'over', text: `Pemakaian ${p.name} melebihi limit ${rp(-p.saldo - (p.credit_limit ?? 0))}`, href: '/dashboard/sumber-dana' }) } else if (p.saldo < 0) alerts.push({ tone: 'over', text: `Saldo ${p.name} minus ${rp(-p.saldo)}`, href: '/dashboard/sumber-dana' })
+  for (const p of pockets) if (isCreditKind(p.kind)) { if ((p.credit_limit ?? 0) > 0 && -p.saldo > (p.credit_limit ?? 0)) alerts.push({ tone: 'over', text: `Pemakaian ${p.name} melebihi limit ${rp(-p.saldo - (p.credit_limit ?? 0))}`, href: '/dashboard/sumber-dana' }) } else if (p.saldo < 0) alerts.push({ tone: 'over', text: `Saldo ${p.name} minus ${rp(-p.saldo)}`, href: '/dashboard/sumber-dana' })
   if (s.uangBelanja > 0 && s.sisaJatah < 0) alerts.push({ tone: 'over', text: `Jatah belanja sudah terlewat ${rp(-s.sisaJatah)}`, href: '/dashboard/catatan' })
   else if (s.uangBelanja > 0 && s.sisaJatah / s.uangBelanja < 0.15) alerts.push({ tone: 'warn', text: `Jatah belanja tinggal ${Math.round((s.sisaJatah / s.uangBelanja) * 100)}% (${rp(s.sisaJatah)})`, href: '/dashboard/catatan' })
   if (nowMonth) {

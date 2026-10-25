@@ -2,7 +2,7 @@
 import { useBusyTransition } from './Busy'
 import { useToast } from './Toast'
 
-const KINDS = [['bank', 'Bank'], ['ewallet', 'E-wallet'], ['tunai', 'Tunai'], ['kredit', 'Kartu kredit'], ['lainnya', 'Lainnya']] as const
+const KINDS = [['bank', 'Bank'], ['ewallet', 'E-wallet'], ['tunai', 'Tunai'], ['kredit', 'Kartu kredit'], ['paylater', 'PayLater'], ['lainnya', 'Lainnya']] as const
 
 /** Ganti jenis sumber dana (bank / e-wallet / tunai) langsung dari kartunya. */
 export function KindSelect({ id, value, action }: { id: string; value: string; action: (id: string, field: any, value: string) => Promise<void> }) {

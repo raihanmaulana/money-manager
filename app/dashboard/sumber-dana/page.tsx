@@ -1,4 +1,5 @@
-import { ArrowLeftRight, Scale, Banknote, Landmark, Plus, Smartphone, Wallet, History, Coins, CreditCard } from 'lucide-react'
+import { ArrowLeftRight, Scale, Banknote, Landmark, Plus, Smartphone, Wallet, History, Coins, CreditCard, CalendarClock } from 'lucide-react'
+import { isCreditKind } from '@/lib/types'
 import { PocketAvatar } from '@/components/PocketAvatar'
 import { TileTitle } from '@/components/TileTitle'
 import { getCtx, loadPockets } from '@/lib/data'
@@ -20,14 +21,14 @@ export const metadata = { title: 'Sumber dana' }
 
 const KIND: Record<PocketKind, { label: string; Icon: typeof Wallet }> = {
   bank: { label: 'Bank', Icon: Landmark }, ewallet: { label: 'E-wallet', Icon: Smartphone },
-  tunai: { label: 'Tunai', Icon: Banknote }, kredit: { label: 'Kartu kredit', Icon: CreditCard }, lainnya: { label: 'Lainnya', Icon: Wallet },
+  tunai: { label: 'Tunai', Icon: Banknote }, kredit: { label: 'Kartu kredit', Icon: CreditCard }, paylater: { label: 'PayLater', Icon: CalendarClock }, lainnya: { label: 'Lainnya', Icon: Wallet },
 }
 const tgl = (iso: string) => new Date(iso + 'T00:00:00Z').toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
 
 export default async function SumberDana() {
   const ctx = await getCtx()
   const { pockets, transfers, adjustments } = await loadPockets(ctx)
-  const real = pockets.filter((p) => p.kind !== 'kredit')
+  const real = pockets.filter((p) => !isCreditKind(p.kind))
   const total = real.reduce((t, p) => t + p.saldo, 0)
   const name = (id: string) => pockets.find((p) => p.id === id)?.name ?? 'Sumber dihapus'
   let i = 0
@@ -75,7 +76,7 @@ export default async function SumberDana() {
                 <TileTitle id={`p-${p.id}`} icon={Icon} lead={<PocketAvatar name={p.name} kind={p.kind} size={34} />}>{p.name}</TileTitle>
                 <span className="chip">{label}</span>
               </div>
-              {p.kind === 'kredit' ? (() => {
+              {isCreditKind(p.kind) ? (() => {
                 const limit = p.credit_limit ?? 0, used = Math.max(0, -p.saldo), pct = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0
                 return (
                   <>

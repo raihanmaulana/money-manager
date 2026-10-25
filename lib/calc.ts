@@ -1,3 +1,4 @@
+import { isCreditKind } from './types.ts'
 import type { Bill, BillMonth, BudgetItem, Expense, Grp, IncomeItem, Pocket, PocketView, Transfer } from './types.ts'
 
 const BULAN = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
@@ -228,10 +229,10 @@ export function pocketBalances(
   cardPays: { paid_on: string; amount: number; card_pocket_id: string }[] = [], // pembayaran tagihan kartu: memulihkan limit kartunya
 ): PocketView[] {
   // Kartu kredit: saldo = −terpakai (opening_balance = terpakai awal)
-  const bal = new Map<string, number>(pockets.map((p) => [p.id, p.kind === 'kredit' ? -p.opening_balance : p.opening_balance]))
+  const bal = new Map<string, number>(pockets.map((p) => [p.id, isCreditKind(p.kind) ? -p.opening_balance : p.opening_balance]))
   const add = (id: string | null | undefined, n: number) => { if (id && bal.has(id)) bal.set(id, bal.get(id)! + n) }
   for (const i of income) if (i.ym <= today.ym) add(i.pocket_id, i.kind === 'masuk' ? i.amount : -i.amount)
-  const since = new Map(pockets.filter((p) => p.kind === 'kredit' && p.credit_since).map((p) => [p.id, p.credit_since!]))
+  const since = new Map(pockets.filter((p) => isCreditKind(p.kind) && p.credit_since).map((p) => [p.id, p.credit_since!]))
   const counts = (id: string | null | undefined, on: string) => !id || !since.has(id) || on >= since.get(id)!
   for (const e of expenses) if (e.spent_on <= today.iso && counts(e.pocket_id, e.spent_on)) add(e.pocket_id, -e.amount)
   for (const d of deposits) if (d.ym <= today.ym) add(d.pocket_id, -d.amount)
@@ -240,4 +241,28 @@ export function pocketBalances(
   for (const c of cardPays) if (c.paid_on <= today.iso && counts(c.card_pocket_id, c.paid_on)) add(c.card_pocket_id, c.amount)
   for (const t of transfers) if (t.moved_on <= today.iso) { add(t.from_pocket, -(t.amount + (t.fee ?? 0))); add(t.to_pocket, t.amount) }
   return pockets.map((p) => ({ ...p, saldo: bal.get(p.id) ?? 0 }))
+}
+
+/**
+ * Pembayaran tagihan yang terhubung ke kartu / PayLater → pemulihan limit.
+ * Kalau tagihan punya "pokok per bulan", limit hanya pulih sebesar pokok itu per bulan tagihan (sisanya bunga/admin).
+ */
+export function cardRestores(
+  payments: { bill_id: string; ym: string; paid_on: string; amount: number }[],
+  bills: { id: string; card_pocket_id?: string | null; principal?: number; kind?: string }[],
+): { paid_on: string; amount: number; card_pocket_id: string }[] {
+  const by = new Map(bills.filter((b) => b.card_pocket_id).map((b) => [b.id, b]))
+  const used = new Map<string, number>()
+  const out: { paid_on: string; amount: number; card_pocket_id: string }[] = []
+  for (const p of [...payments].sort((a, b) => a.paid_on.localeCompare(b.paid_on))) {
+    const b = by.get(p.bill_id)
+    if (!b) continue
+    const cap = b.kind !== 'kartu' && (b.principal ?? 0) > 0 ? b.principal! : Infinity
+    const key = `${p.bill_id}|${p.ym}`
+    const so = used.get(key) ?? 0
+    const give = Math.max(0, Math.min(p.amount, cap - so))
+    used.set(key, so + give)
+    if (give > 0) out.push({ paid_on: p.paid_on, amount: give, card_pocket_id: b.card_pocket_id! })
+  }
+  return out
 }

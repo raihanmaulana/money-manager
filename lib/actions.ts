@@ -2,6 +2,7 @@
 
 import { cookies } from 'next/headers'
 import { revalidatePath } from 'next/cache'
+import { isCreditKind } from './types.ts'
 import { isYm, planItems, ymAdd, ymDiff, ymLabel, ymOfDate } from './calc.ts'
 import { DEMO } from './data.ts'
 import { queryPockets } from './pockets.ts'
@@ -11,7 +12,7 @@ import { fmtRp, fullSyncEvents, logEvent, pocketEvents, postEvents, queue, rowEv
 
 const GRP = ['kebutuhan', 'gaya_hidup', 'tabungan', 'investasi'] as const
 const KINDS = ['tagihan', 'cicilan', 'hutang', 'kartu'] as const
-const POCKET_KINDS = ['bank', 'ewallet', 'tunai', 'lainnya', 'kredit'] as const
+const POCKET_KINDS = ['bank', 'ewallet', 'tunai', 'lainnya', 'kredit', 'paylater'] as const
 
 const money = (v: FormDataEntryValue | string | number | null | undefined) => {
   const n = Number(String(v ?? '').replace(/[^\d]/g, ''))
@@ -60,9 +61,9 @@ async function lowBalance(c: C, pocketId: string | null | undefined): Promise<st
   try {
     const { pockets } = await queryPockets(c.sb, c.uid, ymOfDate(new Date()))
     const p = pockets.find((x) => x.id === pocketId)
-    if (p?.kind === 'kredit') {
-      const used = -p.saldo, lim = p.credit_limit ?? 0
-      if (lim > 0 && used > lim) return `⚠ Tersimpan, tapi pemakaian ${p.name} ${fmtRp(used)} melebihi limit ${fmtRp(lim)} (lebih ${fmtRp(used - lim)}).`
+    if (isCreditKind(p?.kind)) {
+      const used = -p!.saldo, lim = p!.credit_limit ?? 0
+      if (lim > 0 && used > lim) return `⚠ Tersimpan, tapi pemakaian ${p!.name} ${fmtRp(used)} melebihi limit ${fmtRp(lim)} (lebih ${fmtRp(used - lim)}).`
       return
     }
     if (p && p.saldo < 0) return `⚠ Tersimpan, tapi saldo ${p.name} sekarang minus ${fmtRp(-p.saldo)}. Cek apakah ada pemasukan atau pindah dana yang belum dicatat.`
@@ -78,7 +79,7 @@ async function pocketOf(c: C, raw: FormDataEntryValue | null): Promise<string | 
 async function cardPocketOf(c: C, raw: FormDataEntryValue | null): Promise<string | null> {
   const id = text(raw, 40)
   if (!id) return null
-  const { data } = await c.sb.from('pockets').select('id').eq('id', id).eq('owner_id', c.uid).eq('kind', 'kredit').maybeSingle()
+  const { data } = await c.sb.from('pockets').select('id').eq('id', id).eq('owner_id', c.uid).in('kind', ['kredit', 'paylater']).maybeSingle()
   return data ? (data.id as string) : null
 }
 /** Hubungkan tagihan kartu ke sumber dana kartu kreditnya (dipakai PocketInline). */
@@ -86,7 +87,14 @@ export async function setBillCardPocket(_table: string, billId: string, _field: 
   const c = await me()
   if (!c) return done()
   const pid = await cardPocketOf(c, value)
-  await c.sb.from('bills').update({ card_pocket_id: pid }).eq('id', billId).eq('owner_id', c.uid).eq('kind', 'kartu')
+  await c.sb.from('bills').update({ card_pocket_id: pid }).eq('id', billId).eq('owner_id', c.uid)
+  done()
+}
+/** Pokok per bulan tagihan yang terhubung ke kartu / PayLater (0 = seluruh nominal dianggap pokok). */
+export async function setBillPrincipal(billId: string, _field: string, value: string) {
+  const c = await me()
+  if (!c) return done()
+  await c.sb.from('bills').update({ principal: money(value) }).eq('id', billId).eq('owner_id', c.uid)
   done()
 }
 async function curYm() {
@@ -319,7 +327,8 @@ export async function addBill(formData: FormData): Promise<string | void> {
     start_ym, end_ym: end_ym || null,
     note: text(formData.get('note'), 120),
     min_payment: kind === 'kartu' ? Math.min(money(formData.get('min_payment')), amount) : 0,
-    card_pocket_id: kind === 'kartu' ? await cardPocketOf(c, formData.get('card_pocket_id')) : null,
+    card_pocket_id: kind === 'hutang' ? null : await cardPocketOf(c, formData.get('card_pocket_id')),
+    principal: kind === 'kartu' || kind === 'hutang' ? 0 : Math.min(money(formData.get('principal')), amount),
   }).select('id').single()
   if (error || !row) { console.error('[tagihan] gagal simpan', error); return `Gagal menyimpan: ${error?.message ?? 'tidak ada data kembali'}` }
   await mirror(c, [{ table: 'bills', id: row.id }], 'Tambah', 'Tagihan', `${name} (${KIND_NAME[kind]}) ${fmtRp(amount)}/bulan mulai ${ymLabel(start_ym)}${months > 0 ? `, ${months} bulan` : ', terus'}`, [await curYm(), start_ym])
@@ -568,10 +577,10 @@ export async function addPocket(formData: FormData) {
   const c = await me()
   if (!c) return done()
   const opening = money(formData.get('opening_balance')) // untuk kartu kredit: terpakai saat ini
-  const credit_limit = kind === 'kredit' ? money(formData.get('credit_limit')) : 0
+  const credit_limit = isCreditKind(kind) ? money(formData.get('credit_limit')) : 0
   const { count } = await c.sb.from('pockets').select('id', { count: 'exact', head: true }).eq('owner_id', c.uid)
   const { data: row } = await c.sb.from('pockets').insert({ owner_id: c.uid, name, kind, opening_balance: opening, credit_limit, sort: count ?? 0 }).select('id').single()
-  if (row) await mirror(c, [{ table: 'pockets', id: row.id }], 'Tambah', 'Sumber Dana', `${name} (${kind}), ${kind === 'kredit' ? `limit ${fmtRp(credit_limit)}, terpakai ${fmtRp(opening)}` : `saldo awal ${fmtRp(opening)}`}`)
+  if (row) await mirror(c, [{ table: 'pockets', id: row.id }], 'Tambah', 'Sumber Dana', `${name} (${kind}), ${isCreditKind(kind) ? `limit ${fmtRp(credit_limit)}, terpakai ${fmtRp(opening)}` : `saldo awal ${fmtRp(opening)}`}`)
   done()
 }
 export async function updatePocket(id: string, field: 'name' | 'opening_balance' | 'kind' | 'credit_limit' | 'credit_since', value: string) {
