@@ -42,3 +42,11 @@ export type DebtEntry = {
   fromSplit?: boolean
 }
 export type DebtPayment = { id: string; person_id: string; direction: 'them_to_me' | 'me_to_them'; amount: number; paid_on: string; note: string; pocket_id?: string | null }
+
+/** E-Statement: ringkasan statement bulanan per sumber dana (file PDF asli opsional di Storage). */
+export type Statement = {
+  id: string; pocket_id: string | null; pocket_name: string; pocket_kind: string; period: string
+  opening: number; total_in: number; total_out: number; closing: number
+  min_payment: number; due_on: string | null; note: string
+  file_path: string | null; file_name: string; file_size: number
+}

@@ -6,7 +6,7 @@ import { queryPockets } from './pockets.ts'
 import { ensureRecurring } from './recurring.ts'
 import { supabaseServer } from './supabase/server.ts'
 import * as demo from './demo.ts'
-import type { Bill, BillMonth, BillPayment, BudgetItem, Expense, Goal, GoalDeposit, IncomeItem, MonthData, PocketAdjustment, NeedItem, NeedPurchase, PocketView, Recurring, Split, Transfer, DebtEntry, DebtPayment, DebtPerson } from './types.ts'
+import type { Bill, BillMonth, BillPayment, BudgetItem, Expense, Goal, GoalDeposit, IncomeItem, MonthData, PocketAdjustment, NeedItem, NeedPurchase, PocketView, Recurring, Split, Transfer, DebtEntry, DebtPayment, DebtPerson, Statement } from './types.ts'
 
 export const DEMO = process.env.DEMO_MODE === '1'
 
@@ -222,4 +222,24 @@ export async function loadDebtPerson(ctx: Ctx, id: string): Promise<{ person: De
   ])
   const entries = [...((en.data ?? []).map((r) => ({ ...r, amount: num(r.amount), share: num(r.share) })) as DebtEntry[]), ...auto].sort((a, b) => a.entry_on.localeCompare(b.entry_on))
   return { person: person as DebtPerson, entries, payments: (pa.data ?? []).map((r) => ({ ...r, amount: num(r.amount) })) as DebtPayment[] }
+}
+
+// ── E-Statement ──────────────────────────────────────────────────────
+
+export async function loadStatements(ctx: Ctx): Promise<Statement[]> {
+  if (DEMO) return demo.demoStatements()
+  try {
+    const sb = await supabaseServer()
+    const { data } = await sb.from('statements').select('*').eq('owner_id', ctx.userId).order('period', { ascending: false }).order('created_at', { ascending: false })
+    return (data ?? []).map((r) => ({ ...r, opening: num(r.opening), total_in: num(r.total_in), total_out: num(r.total_out), closing: num(r.closing), min_payment: num(r.min_payment), file_size: num(r.file_size) })) as Statement[]
+  } catch { return [] }
+}
+
+/** Saldo semua sumber dana pada akhir bulan tertentu (untuk mencocokkan dengan saldo akhir statement). */
+export async function loadPocketsAt(ctx: Ctx, ym: string): Promise<PocketView[]> {
+  const last = new Date(Date.UTC(+ym.slice(0, 4), +ym.slice(5, 7), 0)).getUTCDate()
+  const at = { ym, iso: `${ym}-${String(last).padStart(2, '0')}` }
+  if (DEMO) return (await loadPockets({ ...ctx, ym, today: { ...ctx.today, ym, iso: at.iso } })).pockets
+  const sb = await supabaseServer()
+  return (await queryPockets(sb, ctx.userId, at)).pockets
 }

@@ -5,7 +5,7 @@ import { LayoutGrid } from 'lucide-react'
 import { isActive } from './nav-items'
 import { useNav } from './NavPrefs'
 
-const MORE = ['/dashboard/lainnya', '/dashboard/tabungan', '/dashboard/sumber-dana', '/dashboard/hutang', '/dashboard/investasi', '/dashboard/laporan', '/dashboard/pengaturan']
+const MORE = ['/dashboard/lainnya', '/dashboard/tabungan', '/dashboard/sumber-dana', '/dashboard/hutang', '/dashboard/estatement', '/dashboard/investasi', '/dashboard/laporan', '/dashboard/pengaturan']
 
 export function RailNav() {
   const path = usePathname()

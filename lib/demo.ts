@@ -97,3 +97,9 @@ export const demoDebtEntries = (): import('./types.ts').DebtEntry[] => [
 export const demoDebtPayments = (): import('./types.ts').DebtPayment[] => [
   { id: 'dp1', person_id: 'd1', direction: 'them_to_me', amount: 200_000, paid_on: '2026-10-10', note: 'Transfer' },
 ]
+
+export const demoStatements = (): import('./types.ts').Statement[] => [
+  { id: 'st1', pocket_id: 'p1', pocket_name: 'BCA', pocket_kind: 'bank', period: '2026-09', opening: 3_100_000, total_in: 7_150_000, total_out: 5_420_000, closing: 4_830_000, min_payment: 0, due_on: null, note: '', file_path: 'demo/st1.pdf', file_name: 'BCA-2026-09.pdf', file_size: 218_000 },
+  { id: 'st2', pocket_id: 'p5', pocket_name: 'BRI CC', pocket_kind: 'kredit', period: '2026-09', opening: 1_000_000, total_in: 1_000_000, total_out: 2_001_271, closing: 2_001_271, min_payment: 200_000, due_on: '2026-10-06', note: 'Termasuk cicilan Credit to Cash', file_path: null, file_name: '', file_size: 0 },
+  { id: 'st3', pocket_id: 'p1', pocket_name: 'BCA', pocket_kind: 'bank', period: '2026-08', opening: 2_500_000, total_in: 6_900_000, total_out: 6_300_000, closing: 3_100_000, min_payment: 0, due_on: null, note: '', file_path: 'demo/st3.pdf', file_name: 'BCA-2026-08.pdf', file_size: 196_000 },
+]

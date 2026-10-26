@@ -1,4 +1,4 @@
-import { Home, NotebookPen, Receipt, PieChart, PiggyBank, TrendingUp, Settings, Landmark, ListTodo, FileText, Download, HandCoins, type LucideIcon } from 'lucide-react'
+import { Home, NotebookPen, Receipt, PieChart, PiggyBank, TrendingUp, Settings, Landmark, ListTodo, FileText, Download, HandCoins, FileArchive, type LucideIcon } from 'lucide-react'
 
 export type NavItem = { href: string; label: string; Icon: LucideIcon; hint?: string; hue?: number; optional?: 'debt' }
 
@@ -11,6 +11,7 @@ export const NAV: NavItem[] = [
   { href: '/dashboard/tabungan', label: 'Tabungan', Icon: PiggyBank, hue: 150, hint: 'Target dan dana darurat' },
   { href: '/dashboard/sumber-dana', label: 'Sumber dana', Icon: Landmark, hue: 228, hint: 'Bank, e-wallet, tunai' },
   { href: '/dashboard/hutang', label: 'Hutang Split Bill', Icon: HandCoins, hue: 28, hint: 'Hutang piutang dengan teman', optional: 'debt' },
+  { href: '/dashboard/estatement', label: 'E-Statement', Icon: FileArchive, hue: 185, hint: 'Arsip statement bank dan kartu kredit' },
   { href: '/dashboard/investasi', label: 'Investasi', Icon: TrendingUp, hue: 12, hint: 'Simulasi sederhana' },
   { href: '/dashboard/laporan', label: 'Laporan', Icon: FileText, hue: 258, hint: 'Ringkasan siap cetak' },
   { href: '/dashboard/pengaturan', label: 'Pengaturan', Icon: Settings, hue: 258, hint: 'Akun dan sinkron Google Sheet' },
