@@ -37,3 +37,25 @@ test('kartu BNI: cicilan 0/NN tidak dihitung sebagai tagihan bulan itu', () => {
   assert.equal(r.due_on, '2026-09-10')
   assert.deepEqual(r.warnings, [])
 })
+
+/** Halaman BRImo sintetis: saldo berjalan boleh negatif, baris terakhir halaman tetap terbaca. */
+const brimo = (): PItem[][] => [[
+  it('LAPORAN TRANSAKSI FINANSIAL', 300, 34), it('01/09/26 - 30/09/26', 434, 138), it('039301054407504', 125, 222),
+  it('Nama Produk', 34, 250), it('Britama Digital', 125, 250), it('Transaction Date', 38, 331),
+  it('01/09/26 07:50:31', 38, 350, 62), it('Pembayaran QRIS Warung', 110, 350, 120), it('8888037', 299, 350, 30), it('16,000.00', 408, 350, 33), it('0.00', 522, 350, 15), it('84,000.00', 600, 350, 34),
+  it('02/09/26 04:05:50', 38, 370, 62), it('Pembayaran BRIVA', 110, 370, 90), it('8888152', 299, 370, 30), it('100,000.00', 398, 370, 43), it('0.00', 522, 370, 15), it('-16,000.00', 588, 370, 46),
+  it('Saldo Awal', 86, 790), it('Total Transaksi Debet', 218, 790), it('Total Transaksi Kredit', 373, 790), it('Saldo Akhir', 543, 790),
+  it('100,000.00', 128, 810, 40), it('116,000.00', 275, 810, 40), it('0.00', 425, 810, 15), it('-16,000.00', 590, 810, 44),
+]]
+
+test('BRImo: baris dengan saldo negatif terbaca dan hitungan cocok', () => {
+  const r = parseStatementPages(brimo())
+  assert.ok(!('error' in r))
+  if ('error' in r) return
+  assert.equal(r.bank, 'BRI')
+  assert.equal(r.label, 'BRI Britama Digital')
+  assert.equal(r.period, '2026-09')
+  assert.equal(r.txns.length, 2)
+  assert.equal(r.txns[1].balance, -16000)
+  assert.deepEqual(r.warnings, [])
+})

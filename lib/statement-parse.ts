@@ -1,6 +1,6 @@
 /**
  * Pembaca e-statement dari teks PDF (posisi tiap potongan teks). Dijalankan di browser.
- * Format yang dikenali: BNI Mutasi Rekening (mobile banking) dan BNI e-billing Kartu Kredit.
+ * Format yang dikenali: BNI Mutasi Rekening, BNI e-billing Kartu Kredit, BRImo (rekening koran) dan BRI e-billing Kartu Kredit.
  */
 export type PItem = { s: string; x: number; y: number; w: number } // y dihitung dari atas halaman
 export type ParsedTxn = { txn_on: string; description: string; kind: string; direction: 'in' | 'out'; amount: number; balance: number | null }
@@ -175,9 +175,120 @@ function parseBniCard(pages: PItem[][]): ParseResult {
   return { bank: 'BNI', type: 'kartu', label: 'BNI Kartu Kredit', account: card, period, opening, total_in: paid, total_out: spend + cash + fee - converted, closing, min_payment, due_on, note, txns, warnings }
 }
 
+// ── BRI ──────────────────────────────────────────────────────────────
+
+const idr = (s: string) => { const n = Number(s.replace(/[,\s]/g, '').split('.')[0].replace('-', '')) || 0; return s.trim().startsWith('-') ? -n : n } // "11,919,242.00" → 11919242
+
+/** "01/09/26 07:50:31" → "2026-09-01" */
+function dateSlash(s: string): string | null {
+  const m = s.trim().match(/^(\d{2})\/(\d{2})\/(\d{2})\b/)
+  return m ? `20${m[3]}-${m[2]}-${m[1]}` : null
+}
+const briKind = (d: string) =>
+  /QRIS/i.test(d) ? 'QRIS' : /Top ?Up|TOPD/i.test(d) ? 'Top Up' : /Transfer|NBMB|TO |BI-?FAST|FLIP/i.test(d) ? 'Transfer' : /Bunga/i.test(d) ? 'Bunga' : /Pajak/i.test(d) ? 'Pajak' : /Biaya|Admin|Fee/i.test(d) ? 'Biaya' : 'Lainnya'
+
+/** BRImo "Laporan Transaksi Finansial" (rekening koran: Britama dsb.) */
+function parseBriMutasi(pages: PItem[][]): ParseResult {
+  const all = pages.flat()
+  const per = all.map((i) => i.s.match(/(\d{2})\/(\d{2})\/(\d{2})\s*-\s*(\d{2})\/(\d{2})\/(\d{2})/)).find(Boolean)
+  if (!per) return { error: 'Periode di PDF tidak terbaca.' }
+  const period = `20${per[3]}-${per[2]}`
+  const account = all.find((i) => /^\d{12,16}$/.test(i.s.trim()))?.s.trim() ?? ''
+  const lp = all.find((i) => /Nama Produk/.test(i.s))
+  const product = lp ? all.find((i) => Math.abs(i.y - lp.y) < 3 && i.x > lp.x + 60 && i.x < 300 && /\w/.test(i.s))?.s.trim() ?? '' : ''
+  const label = product ? `BRI ${product}` : 'BRI'
+
+  const sumPage = pages.find((p) => p.some((i) => i.s === 'Saldo Awal')) ?? []
+  const labelRow = sumPage.find((i) => i.s === 'Saldo Awal')
+  if (!labelRow) return { error: 'Ringkasan saldo di PDF tidak terbaca.' }
+  const vals = sumPage.filter((i) => i.y > labelRow.y + 10 && i.y < labelRow.y + 40 && /^-?[\d,]+\.\d{2}$/.test(i.s.trim())).sort((a, b) => a.x - b.x)
+  if (vals.length < 4) return { error: 'Ringkasan saldo di PDF tidak terbaca.' }
+  const [opening, total_out, total_in, closing] = vals.slice(0, 4).map((v) => idr(v.s))
+
+  const txns: ParsedTxn[] = []
+  for (const items of pages) {
+    const head = items.find((i) => i.s === 'Transaction Date')
+    if (!head) continue
+    const end = items.find((i) => i.s === 'Saldo Awal')?.y ?? 795
+    for (const r of rowsOf(items.filter((i) => i.y > head.y + 4 && i.y < end - 4))) {
+      const d = r.find((i) => /^\d{2}\/\d{2}\/\d{2} \d{2}:\d{2}:\d{2}$/.test(i.s.trim()))
+      if (!d) {
+        const last = txns[txns.length - 1]
+        const cont = r.filter((i) => i.x > 100 && i.x < 290).map((i) => i.s.trim()).join(' ')
+        if (last && cont) last.description += ' ' + cont
+        continue
+      }
+      const nums = r.filter((i) => /^-?[\d,]+\.\d{2}$/.test(i.s.trim())).sort((a, b) => a.x - b.x)
+      if (nums.length < 3) continue
+      const [debit, credit, bal] = nums.map((n) => idr(n.s))
+      const desc = r.filter((i) => i !== d && !nums.includes(i) && !/^\d{7}$/.test(i.s.trim())).map((i) => i.s.trim()).join(' ').replace(/\s+/g, ' ')
+      txns.push({ txn_on: dateSlash(d.s)!, description: desc, kind: briKind(desc), direction: credit > 0 ? 'in' : 'out', amount: credit > 0 ? credit : debit, balance: bal })
+    }
+  }
+
+  const warnings: string[] = []
+  const sumIn = txns.filter((t) => t.direction === 'in').reduce((a, t) => a + t.amount, 0)
+  const sumOut = txns.filter((t) => t.direction === 'out').reduce((a, t) => a + t.amount, 0)
+  if (sumIn !== total_in) warnings.push(`Total masuk dari transaksi ${rpf(sumIn)} berbeda dari ringkasan ${rpf(total_in)}.`)
+  if (sumOut !== total_out) warnings.push(`Total keluar dari transaksi ${rpf(sumOut)} berbeda dari ringkasan ${rpf(total_out)}.`)
+  if (opening + total_in - total_out !== closing) warnings.push('Saldo awal + masuk − keluar tidak sama dengan saldo akhir di PDF.')
+  let run = opening, broken = 0
+  for (const t of txns) { run += t.direction === 'in' ? t.amount : -t.amount; if (t.balance != null && t.balance !== run) { broken++; run = t.balance } }
+  if (broken) warnings.push(`${broken} transaksi tidak nyambung dengan saldo berjalan di PDF.`)
+  if (!txns.length) warnings.push('Tidak ada transaksi yang terbaca.')
+  return { bank: 'BRI', type: 'rekening', label, account, period, opening, total_in, total_out, closing, min_payment: 0, due_on: null, note: '', txns, warnings }
+}
+
+/** BRI Kartu Kredit: tagihan bulanan (e-billing) */
+function parseBriCard(pages: PItem[][]): ParseResult {
+  const rows = pages.flatMap((p) => rowsOf(p))
+  const numOf = (r: PItem[], re: RegExp) => r.filter((i) => re.test(i.s.trim()) && i.x > 300)
+  const rowOf = (re: RegExp) => rows.find((r) => r.some((i) => re.test(i.s.trim())))
+  const lastNum = (r?: PItem[]) => { const n = r ? numOf(r, /^[\d.]+$/).pop() : undefined; return n ? digits(n.s) : null }
+  const openingV = lastNum(rowOf(/^Tagihan Bulan Lalu$/)), closingV = lastNum(rowOf(/^Tagihan Bulan ini$/))
+  if (openingV == null || closingV == null) return { error: 'Ringkasan tagihan kartu tidak terbaca.' }
+
+  const ci = rows.findIndex((r) => r.some((i) => /^\d{4}-\d{2}XX-XXXX-\d{4}$/.test(i.s)) && r.some((i) => dateDash(i.s)))
+  if (ci < 0) return { error: 'Tanggal jatuh tempo kartu tidak terbaca.' }
+  const head = rows[ci], below = rows.slice(ci + 1).find((r) => r.some((i) => dateDash(i.s) && i.x < 130))
+  if (!below) return { error: 'Tanggal cetak tagihan tidak terbaca.' }
+  const due_on = dateDash(head.find((i) => dateDash(i.s))!.s)
+  const limit = digits(head.filter((i) => /^[\d.]+$/.test(i.s.trim()))[0]?.s ?? '0')
+  const cetak = dateDash(below.find((i) => dateDash(i.s))!.s)!
+  const bn = below.filter((i) => /^[\d.]+$/.test(i.s.trim())).map((i) => digits(i.s))
+  const min_payment = bn[1] ?? 0, left = bn[2] ?? 0
+
+  const txns: ParsedTxn[] = []
+  for (const r of rows) {
+    const dates = r.filter((i) => i.x < 130 && dateDash(i.s))
+    if (dates.length < 2) continue
+    const amt = [...r].reverse().find((i) => i.x > 380 && /^[\d.]+(CR)?$/.test(i.s.trim()))
+    if (!amt) continue
+    const cr = /CR$/.test(amt.s.trim())
+    let desc = r.filter((i) => !dates.includes(i) && i !== amt && !/^(IDR|0\.00)$/.test(i.s.trim())).map((i) => i.s.trim()).join(' ').replace(/\s*(ID )?IDR$/, '').replace(/^M[FN]\d+_\d+/, '').replace(/\s+/g, ' ').trim()
+    const inst = desc.match(/:\s*(\d+)\/(\d+)\s*$/)
+    const kind = /PAYMENT/i.test(desc) && cr ? 'Pembayaran' : inst ? `Cicilan ${+inst[1]}/${+inst[2]}` : cr ? 'Kredit/Refund' : /BIAYA|FEE/i.test(desc) ? 'Biaya' : 'Belanja'
+    txns.push({ txn_on: dateDash(dates[0].s)!, description: desc, kind, direction: cr ? 'in' : 'out', amount: digits(amt.s), balance: null })
+  }
+
+  const warnings: string[] = []
+  const total_in = txns.filter((t) => t.direction === 'in').reduce((a, t) => a + t.amount, 0)
+  const total_out = txns.filter((t) => t.direction === 'out').reduce((a, t) => a + t.amount, 0)
+  if (openingV - total_in + total_out !== closingV) warnings.push('Tagihan lalu − pembayaran + pembelanjaan tidak sama dengan tagihan bulan ini di PDF.')
+  const foot = rows.find((r) => r.some((i) => /^\d{1,2}\.\d{2}%$/.test(i.s)) && r.filter((i) => /^[\d.]{5,}$/.test(i.s.trim())).length >= 2)
+  const footCredit = foot ? digits(foot.filter((i) => /^[\d.]{5,}$/.test(i.s.trim())).pop()!.s) : null
+  if (footCredit != null && footCredit !== total_in) warnings.push(`Total kredit dari transaksi ${rpf(total_in)} berbeda dari PDF ${rpf(footCredit)}.`)
+  if (!txns.length) warnings.push('Tidak ada transaksi yang terbaca.')
+  const card = rows.flat().find((i) => /^\d{4}-\d{2}XX-XXXX-\d{4}$/.test(i.s))?.s ?? ''
+  const note = limit ? `Limit ${rpf(limit)}${left ? `, sisa limit ${rpf(left)}` : ''}` : ''
+  return { bank: 'BRI', type: 'kartu', label: 'BRI Kartu Kredit', account: card, period: cetak.slice(0, 7), opening: openingV, total_in, total_out, closing: closingV, min_payment, due_on, note, txns, warnings }
+}
+
 export function parseStatementPages(pages: PItem[][]): ParseResult {
   const text = pages.flat().map((i) => i.s).join(' ')
   if (/Laporan Mutasi Rekening/i.test(text) && /BNI|Bank Negara/i.test(text)) return parseBniMutasi(pages)
   if (/BATAS KREDIT/.test(text) && /TAGIHAN BULAN INI/.test(text) && /BNI/i.test(text)) return parseBniCard(pages)
+  if (/LAPORAN TRANSAKSI FINANSIAL/.test(text) && /BRI/i.test(text)) return parseBriMutasi(pages)
+  if (/Tagihan Bulan Lalu/.test(text) && /Kolektibilitas/.test(text) && /BRI/i.test(text)) return parseBriCard(pages)
   return { error: 'Format statement ini belum dikenali. Isi ringkasannya manual, atau kirim contoh PDF-nya supaya pembacanya ditambahkan.' }
 }

@@ -42,7 +42,7 @@ export function StatementForm({ pockets, defaultPeriod, today, demo }: { pockets
       const r = parseStatementPages(await readPdfPages(f))
       if ('error' in r) return setMsg(`${r.error} Isi ringkasannya manual.`)
       const credit = r.type === 'kartu'
-      const guess = pockets.find((p) => /bni/i.test(p.name) && isCreditKind(p.kind) === credit)
+      const guess = pockets.find((p) => new RegExp(r.bank, "i").test(p.name) && isCreditKind(p.kind) === credit)
       if (guess) setPocket(guess.id)
       setPeriod(r.period); setParsed(r); setUseTxns(true); setFk((n) => n + 1)
       setMsg(guess ? '' : `Sumber dana ${r.bank} ${credit ? 'kartu kredit' : 'rekening'} tidak ditemukan otomatis. Pilih sumber dananya.`)
