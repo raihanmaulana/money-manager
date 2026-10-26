@@ -46,3 +46,22 @@ create policy "statements_files_update" on storage.objects for update
   using (bucket_id = 'statements' and (storage.foldername(name))[1] = auth.uid()::text);
 create policy "statements_files_delete" on storage.objects for delete
   using (bucket_id = 'statements' and (storage.foldername(name))[1] = auth.uid()::text);
+
+-- Rincian transaksi hasil baca otomatis PDF (teks kecil, ikut terhapus bila statement dihapus).
+create table if not exists public.statement_txns (
+  id uuid primary key default gen_random_uuid(),
+  owner_id uuid not null references auth.users(id) on delete cascade,
+  statement_id uuid not null references public.statements(id) on delete cascade,
+  txn_on date not null,
+  kind text not null default '',
+  description text not null default '',
+  direction text not null check (direction in ('in','out')),
+  amount bigint not null default 0,
+  balance bigint,
+  created_at timestamptz not null default now()
+);
+create index if not exists statement_txns_idx on public.statement_txns(statement_id, txn_on);
+alter table public.statement_txns enable row level security;
+drop policy if exists "statement_txns_owner" on public.statement_txns;
+create policy "statement_txns_owner" on public.statement_txns for all
+  using (owner_id = auth.uid()) with check (owner_id = auth.uid());

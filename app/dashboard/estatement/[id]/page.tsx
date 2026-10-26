@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
-import { getCtx, loadPocketsAt, loadStatements } from '@/lib/data'
+import { getCtx, loadPocketsAt, loadStatements, loadStatementTxns } from '@/lib/data'
 import { rp, ymLabel } from '@/lib/calc'
 import { isCreditKind } from '@/lib/types'
 import { PageHead } from '@/components/PageHead'
@@ -20,6 +20,7 @@ export default async function LaporanStatement({ params }: { params: Promise<{ i
   const s = list.find((x) => x.id === id)
   if (!s) redirect('/dashboard/estatement')
   const cc = isCreditKind(s.pocket_kind)
+  const txns = await loadStatementTxns(ctx, s.id)
   const calc = cc ? s.opening - s.total_in + s.total_out : s.opening + s.total_in - s.total_out
   const selfDiff = s.closing - calc
   const at = !cc && s.pocket_id ? (await loadPocketsAt(ctx, s.period)).find((p) => p.id === s.pocket_id) : undefined
@@ -93,6 +94,25 @@ export default async function LaporanStatement({ params }: { params: Promise<{ i
               </tbody>
             </table>
             <p className="hint" style={{ marginTop: 'var(--space-2)' }}>{appDiff === 0 ? 'Catatan di aplikasi sudah sesuai dengan statement.' : 'Selisih berarti ada transaksi, biaya admin, bunga, atau pindah dana yang belum dicatat di aplikasi (atau tercatat keliru). Gunakan "Samakan saldo" di Sumber dana setelah ditelusuri.'}</p>
+          </section>
+        ) : null}
+
+        {txns.length ? (
+          <section className="rpt-sec">
+            <h2>Rincian transaksi ({txns.length})</h2>
+            <table className="report-table">
+              <thead><tr><th>Tanggal</th><th>Keterangan</th><th className="r">Jumlah</th>{cc ? null : <th className="r">Saldo</th>}</tr></thead>
+              <tbody>
+                {txns.map((t) => (
+                  <tr key={t.id}>
+                    <td>{t.txn_on.slice(8)}/{t.txn_on.slice(5, 7)}</td>
+                    <td>{t.kind ? <b>{t.kind}</b> : null}{t.kind && t.description ? ' · ' : ''}{t.description}</td>
+                    <td className="r">{t.direction === 'in' ? '+ ' : '− '}{rp(t.amount)}</td>
+                    {cc ? null : <td className="r">{t.balance == null ? '' : rp(t.balance)}</td>}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </section>
         ) : null}
 

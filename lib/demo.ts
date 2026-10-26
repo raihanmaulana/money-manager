@@ -103,3 +103,9 @@ export const demoStatements = (): import('./types.ts').Statement[] => [
   { id: 'st2', pocket_id: 'p5', pocket_name: 'BRI CC', pocket_kind: 'kredit', period: '2026-09', opening: 1_000_000, total_in: 1_000_000, total_out: 2_001_271, closing: 2_001_271, min_payment: 200_000, due_on: '2026-10-06', note: 'Termasuk cicilan Credit to Cash', file_path: null, file_name: '', file_size: 0 },
   { id: 'st3', pocket_id: 'p1', pocket_name: 'BCA', pocket_kind: 'bank', period: '2026-08', opening: 2_500_000, total_in: 6_900_000, total_out: 6_300_000, closing: 3_100_000, min_payment: 0, due_on: null, note: '', file_path: 'demo/st3.pdf', file_name: 'BCA-2026-08.pdf', file_size: 196_000 },
 ]
+
+export const demoStatementTxns = (id: string): import('./types.ts').StatementTxn[] => id !== 'st1' ? [] : [
+  { id: 't1', txn_on: '2026-09-02', kind: 'Transfer masuk', description: 'Gaji September', direction: 'in', amount: 7_150_000, balance: 10_250_000 },
+  { id: 't2', txn_on: '2026-09-05', kind: 'QRIS', description: 'Warung makan', direction: 'out', amount: 45_000, balance: 10_205_000 },
+  { id: 't3', txn_on: '2026-09-10', kind: 'Transfer keluar', description: 'Bayar kos', direction: 'out', amount: 1_500_000, balance: 8_705_000 },
+]

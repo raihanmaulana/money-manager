@@ -50,3 +50,4 @@ export type Statement = {
   min_payment: number; due_on: string | null; note: string
   file_path: string | null; file_name: string; file_size: number
 }
+export type StatementTxn = { id: string; txn_on: string; kind: string; description: string; direction: 'in' | 'out'; amount: number; balance: number | null }

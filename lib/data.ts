@@ -6,7 +6,7 @@ import { queryPockets } from './pockets.ts'
 import { ensureRecurring } from './recurring.ts'
 import { supabaseServer } from './supabase/server.ts'
 import * as demo from './demo.ts'
-import type { Bill, BillMonth, BillPayment, BudgetItem, Expense, Goal, GoalDeposit, IncomeItem, MonthData, PocketAdjustment, NeedItem, NeedPurchase, PocketView, Recurring, Split, Transfer, DebtEntry, DebtPayment, DebtPerson, Statement } from './types.ts'
+import type { Bill, BillMonth, BillPayment, BudgetItem, Expense, Goal, GoalDeposit, IncomeItem, MonthData, PocketAdjustment, NeedItem, NeedPurchase, PocketView, Recurring, Split, Transfer, DebtEntry, DebtPayment, DebtPerson, Statement, StatementTxn } from './types.ts'
 
 export const DEMO = process.env.DEMO_MODE === '1'
 
@@ -232,6 +232,15 @@ export async function loadStatements(ctx: Ctx): Promise<Statement[]> {
     const sb = await supabaseServer()
     const { data } = await sb.from('statements').select('*').eq('owner_id', ctx.userId).order('period', { ascending: false }).order('created_at', { ascending: false })
     return (data ?? []).map((r) => ({ ...r, opening: num(r.opening), total_in: num(r.total_in), total_out: num(r.total_out), closing: num(r.closing), min_payment: num(r.min_payment), file_size: num(r.file_size) })) as Statement[]
+  } catch { return [] }
+}
+
+export async function loadStatementTxns(ctx: Ctx, statementId: string): Promise<StatementTxn[]> {
+  if (DEMO) return demo.demoStatementTxns(statementId)
+  try {
+    const sb = await supabaseServer()
+    const { data } = await sb.from('statement_txns').select('id,txn_on,kind,description,direction,amount,balance').eq('owner_id', ctx.userId).eq('statement_id', statementId).order('txn_on').order('created_at')
+    return (data ?? []).map((r) => ({ ...r, amount: num(r.amount), balance: r.balance == null ? null : num(r.balance) })) as StatementTxn[]
   } catch { return [] }
 }
 
