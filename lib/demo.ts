@@ -109,3 +109,10 @@ export const demoStatementTxns = (id: string): import('./types.ts').StatementTxn
   { id: 't2', txn_on: '2026-09-05', kind: 'QRIS', description: 'Warung makan', direction: 'out', amount: 45_000, balance: 10_205_000 },
   { id: 't3', txn_on: '2026-09-10', kind: 'Transfer keluar', description: 'Bayar kos', direction: 'out', amount: 1_500_000, balance: 8_705_000 },
 ]
+
+export const demoTemplate = (): import('./types.ts').TemplateLine[] => [
+  { id: 'tp1', section: 'income', kind: 'masuk', grp: null, label: 'Gaji', amount: 6_500_000, pocket_id: 'p1', sort: 0 },
+  { id: 'tp2', section: 'income', kind: 'potong', grp: null, label: 'BPJS', amount: 150_000, pocket_id: null, sort: 1 },
+  { id: 'tp3', section: 'budget', kind: null, grp: 'kebutuhan', label: 'Makan', amount: 1_500_000, pocket_id: null, sort: 0 },
+  { id: 'tp4', section: 'budget', kind: null, grp: 'tabungan', label: 'Dana darurat', amount: 500_000, pocket_id: null, sort: 1 },
+]

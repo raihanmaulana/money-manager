@@ -137,8 +137,16 @@ export async function seedMonth(formData: FormData) {
     if (inc.data?.length) await sb.from('income_items').insert(inc.data.map((r) => ({ ...r, owner_id: uid, ym })))
     if (bud.data?.length) await sb.from('budget_items').insert(bud.data.map((r) => ({ ...r, owner_id: uid, ym })))
   } else {
-    await sb.from('income_items').insert(DEFAULT_INCOME.map((r, i) => ({ ...r, owner_id: uid, ym, sort: i })))
-    if (DEFAULT_BUDGET.length) await sb.from('budget_items').insert(DEFAULT_BUDGET.map((r, i) => ({ ...r, owner_id: uid, ym, sort: i })))
+    // Template buatan sendiri (Pengaturan) dipakai bila ada; kalau belum, rencana awal bawaan.
+    const { data: tpl } = await sb.from('month_template').select('section,kind,grp,label,amount,pocket_id,sort').eq('owner_id', uid).order('sort')
+    const tInc = (tpl ?? []).filter((r) => r.section === 'income'), tBud = (tpl ?? []).filter((r) => r.section === 'budget')
+    if (tInc.length) {
+      await sb.from('income_items').insert(tInc.map((r, i) => ({ owner_id: uid, ym, label: r.label, kind: r.kind ?? 'masuk', amount: r.amount, pocket_id: r.pocket_id, sort: i })))
+      if (tBud.length) await sb.from('budget_items').insert(tBud.map((r, i) => ({ owner_id: uid, ym, grp: r.grp, label: r.label, amount: r.amount, sort: i })))
+    } else {
+      await sb.from('income_items').insert(DEFAULT_INCOME.map((r, i) => ({ ...r, owner_id: uid, ym, sort: i })))
+      if (DEFAULT_BUDGET.length) await sb.from('budget_items').insert(DEFAULT_BUDGET.map((r, i) => ({ ...r, owner_id: uid, ym, sort: i })))
+    }
   }
   if (sheetsEnabled()) {
     const [i, b] = await Promise.all([

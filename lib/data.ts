@@ -6,7 +6,7 @@ import { queryPockets } from './pockets.ts'
 import { ensureRecurring } from './recurring.ts'
 import { supabaseServer } from './supabase/server.ts'
 import * as demo from './demo.ts'
-import type { Bill, BillMonth, BillPayment, BudgetItem, Expense, Goal, GoalDeposit, IncomeItem, MonthData, PocketAdjustment, NeedItem, NeedPurchase, PocketView, Recurring, Split, Transfer, DebtEntry, DebtPayment, DebtPerson, Statement, StatementTxn } from './types.ts'
+import type { Bill, BillMonth, BillPayment, BudgetItem, Expense, Goal, GoalDeposit, IncomeItem, MonthData, PocketAdjustment, NeedItem, NeedPurchase, PocketView, Recurring, Split, Transfer, DebtEntry, DebtPayment, DebtPerson, Statement, StatementTxn, TemplateLine } from './types.ts'
 
 export const DEMO = process.env.DEMO_MODE === '1'
 
@@ -251,4 +251,14 @@ export async function loadPocketsAt(ctx: Ctx, ym: string): Promise<PocketView[]>
   if (DEMO) return (await loadPockets({ ...ctx, ym, today: { ...ctx.today, ym, iso: at.iso } })).pockets
   const sb = await supabaseServer()
   return (await queryPockets(sb, ctx.userId, at)).pockets
+}
+
+/** Template bulan baru milik pengguna (kosong bila belum diatur atau tabel belum ada). */
+export async function loadTemplate(ctx: Ctx): Promise<TemplateLine[]> {
+  if (DEMO) return demo.demoTemplate()
+  try {
+    const sb = await supabaseServer()
+    const { data } = await sb.from('month_template').select('*').eq('owner_id', ctx.userId).order('sort').order('created_at')
+    return (data ?? []).map((r) => ({ ...r, amount: Number(r.amount) || 0 })) as TemplateLine[]
+  } catch { return [] }
 }

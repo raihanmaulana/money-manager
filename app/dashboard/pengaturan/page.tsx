@@ -1,6 +1,8 @@
 import { TileTitle } from '@/components/TileTitle'
 import { HandCoins, Send, Sheet, UserRound } from 'lucide-react'
-import { getCtx, loadDebtMenu, loadTelegram } from '@/lib/data'
+import { getCtx, loadDebtMenu, loadPockets, loadTelegram, loadTemplate } from '@/lib/data'
+import { ymLabel } from '@/lib/calc'
+import { TemplateTile } from '@/components/TemplateTile'
 import { disconnectTelegram, saveTelegram, updateName } from '@/lib/actions'
 import { LogoutButton } from '@/components/LogoutButton'
 import { PageHead } from '@/components/PageHead'
@@ -14,11 +16,12 @@ export const metadata = { title: 'Pengaturan' }
 
 export default async function Pengaturan() {
   const ctx = await getCtx()
-  const [chat, debtOn] = await Promise.all([loadTelegram(ctx), loadDebtMenu()])
+  const [chat, debtOn, tpl, { pockets }] = await Promise.all([loadTelegram(ctx), loadDebtMenu(), loadTemplate(ctx), loadPockets(ctx)])
   return (
     <>
       <PageHead ctx={ctx} title="Pengaturan" month={false} />
       <div className="bento">
+        <TemplateTile lines={tpl} pockets={pockets} ym={ctx.ym} ymText={ymLabel(ctx.ym)} />
         <section className="tile s6" style={{ ['--i' as string]: 0 }} aria-labelledby="h-akun">
           <div className="tile-head"><TileTitle id="h-akun" icon={UserRound}>Akun</TileTitle></div>
           <QuickForm action={updateName} className="stack" resetOnDone={false}>

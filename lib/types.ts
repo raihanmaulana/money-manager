@@ -51,3 +51,6 @@ export type Statement = {
   file_path: string | null; file_name: string; file_size: number
 }
 export type StatementTxn = { id: string; txn_on: string; kind: string; description: string; direction: 'in' | 'out'; amount: number; balance: number | null }
+
+/** Template bulan baru: pemasukan/potongan (income) atau kategori anggaran (budget). */
+export type TemplateLine = { id: string; section: 'income' | 'budget'; kind: 'masuk' | 'potong' | null; grp: Grp | null; label: string; amount: number; pocket_id: string | null; sort: number }
