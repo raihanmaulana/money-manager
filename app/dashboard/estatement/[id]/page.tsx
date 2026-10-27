@@ -1,13 +1,14 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
-import { getCtx, loadPocketsAt, loadStatements, loadStatementTxns } from '@/lib/data'
+import { getCtx, loadPocketsAt, loadReconcile, loadStatements, loadStatementTxns } from '@/lib/data'
 import { rp, ymLabel } from '@/lib/calc'
 import { isCreditKind } from '@/lib/types'
 import { PageHead } from '@/components/PageHead'
 import { PrintButton } from '@/components/PrintButton'
 import { StatementFileButton } from '@/components/StatementFileButton'
 import { LinkBusy } from '@/components/LinkBusy'
+import { ReconcilePanel } from '@/components/ReconcilePanel'
 
 export const metadata = { title: 'Laporan e-statement' }
 const tgl = (iso: string) => new Date(iso + 'T00:00:00Z').toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })
@@ -21,6 +22,7 @@ export default async function LaporanStatement({ params }: { params: Promise<{ i
   if (!s) redirect('/dashboard/estatement')
   const cc = isCreditKind(s.pocket_kind)
   const txns = await loadStatementTxns(ctx, s.id)
+  const rec = txns.length ? await loadReconcile(ctx, s, txns) : null
   const calc = cc ? s.opening - s.total_in + s.total_out : s.opening + s.total_in - s.total_out
   const selfDiff = s.closing - calc
   const at = !cc && s.pocket_id ? (await loadPocketsAt(ctx, s.period)).find((p) => p.id === s.pocket_id) : undefined
@@ -96,6 +98,8 @@ export default async function LaporanStatement({ params }: { params: Promise<{ i
             <p className="hint" style={{ marginTop: 'var(--space-2)' }}>{appDiff === 0 ? 'Catatan di aplikasi sudah sesuai dengan statement.' : 'Selisih berarti ada transaksi, biaya admin, bunga, atau pindah dana yang belum dicatat di aplikasi (atau tercatat keliru). Gunakan "Samakan saldo" di Sumber dana setelah ditelusuri.'}</p>
           </section>
         ) : null}
+
+        {rec ? <ReconcilePanel statementId={s.id} pocketName={s.pocket_name} credit={cc} matched={rec.matched} bankOnly={rec.bankOnly} appOnly={rec.appOnly} /> : null}
 
         {txns.length ? (
           <section className="rpt-sec">

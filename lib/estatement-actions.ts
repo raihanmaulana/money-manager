@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { DEMO } from './data.ts'
 import { supabaseServer } from './supabase/server.ts'
+import { reconcileStatement } from './reconcile-data.ts'
 
 const BUCKET = 'statements'
 const money = (v: FormDataEntryValue | string | number | null | undefined) => {
@@ -117,4 +118,42 @@ export async function statementFileUrl(id: string): Promise<{ url?: string; erro
   const { data, error } = await c.sb.storage.from(BUCKET).createSignedUrl(row.file_path as string, 300)
   if (error || !data) return { error: 'Gagal membuka file.' }
   return { url: data.signedUrl }
+}
+
+/** Catat transaksi keluar dari statement yang belum ada di Catatan. Dicocokkan ulang di server supaya tidak dobel. */
+export async function importStatementExpenses(fd: FormData): Promise<string | void> {
+  const c = await me()
+  if (!c) return done()
+  const sid = text(fd.get('statement_id'), 40)
+  const want = new Set(fd.getAll('ids').map((v) => String(v)).slice(0, 300))
+  if (!want.size) return 'Pilih transaksi yang mau dicatat.'
+  const { data: s } = await c.sb.from('statements').select('id,pocket_id,period,pocket_kind').eq('id', sid).eq('owner_id', c.uid).maybeSingle()
+  if (!s?.pocket_id) return 'Statement ini tidak punya sumber dana.'
+  const { data: rows } = await c.sb.from('statement_txns').select('id,txn_on,kind,description,direction,amount').eq('statement_id', sid).eq('owner_id', c.uid)
+  const txns = (rows ?? []).map((r) => ({ ...r, amount: Number(r.amount) || 0 })) as { id: string; txn_on: string; kind: string; description: string; direction: 'in' | 'out'; amount: number }[]
+  const rec = await reconcileStatement(c.sb, c.uid, s as { pocket_id: string; period: string; pocket_kind: string }, txns)
+  const todo = (rec?.bankOnly ?? []).filter((t) => want.has(t.id) && t.direction === 'out' && t.amount > 0)
+  if (!todo.length) return 'Semua yang dipilih sudah tercatat.'
+
+  // Kategori otomatis: pakai kategori dari catatan lama yang keterangannya sama persis
+  const yms = [...new Set(todo.map((t) => t.txn_on.slice(0, 7)))]
+  const [past, buds] = await Promise.all([
+    c.sb.from('expenses').select('note,budget_items(label)').eq('owner_id', c.uid).not('budget_item_id', 'is', null).order('spent_on', { ascending: false }).limit(1500),
+    c.sb.from('budget_items').select('id,ym,label').eq('owner_id', c.uid).in('ym', yms),
+  ])
+  const labelOf = new Map<string, string>()
+  for (const r of past.data ?? []) {
+    const lb = (r as { budget_items?: { label?: string } | null }).budget_items?.label
+    const k = String(r.note ?? '').trim().toLowerCase()
+    if (k && lb && !labelOf.has(k)) labelOf.set(k, lb)
+  }
+  const budId = new Map((buds.data ?? []).map((b) => [`${b.ym}|${String(b.label).toLowerCase()}`, b.id as string]))
+  const ins = todo.map((t) => {
+    const note = text(t.description, 120)
+    const lb = labelOf.get(note.toLowerCase())
+    return { owner_id: c.uid, ym: t.txn_on.slice(0, 7), spent_on: t.txn_on, note, amount: t.amount, pocket_id: s.pocket_id as string, budget_item_id: lb ? budId.get(`${t.txn_on.slice(0, 7)}|${lb.toLowerCase()}`) ?? null : null }
+  })
+  const { error } = await c.sb.from('expenses').insert(ins)
+  if (error) return `Gagal mencatat: ${error.message}`
+  done()
 }

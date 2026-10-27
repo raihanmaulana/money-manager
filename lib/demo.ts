@@ -116,3 +116,15 @@ export const demoTemplate = (): import('./types.ts').TemplateLine[] => [
   { id: 'tp3', section: 'budget', kind: null, grp: 'kebutuhan', label: 'Makan', amount: 1_500_000, pocket_id: null, sort: 0 },
   { id: 'tp4', section: 'budget', kind: null, grp: 'tabungan', label: 'Dana darurat', amount: 500_000, pocket_id: null, sort: 1 },
 ]
+
+export const demoReconcile = (s: import('./types.ts').Statement, txns: import('./types.ts').StatementTxn[]) => {
+  if (!txns.length) return null
+  const [a, b, c] = txns
+  return {
+    from: `${s.period}-01`, to: `${s.period}-30`,
+    matched: [{ txn: b, move: { id: 'm1', src: 'catatan' as const, date: b.txn_on, ym: s.period, direction: 'out' as const, amount: b.amount, label: 'Makan siang' } },
+              { txn: a, move: { id: 'm2', src: 'pemasukan' as const, date: null, ym: s.period, direction: 'in' as const, amount: a.amount, label: 'Gaji' } }],
+    bankOnly: [c],
+    appOnly: [{ id: 'm3', src: 'catatan' as const, date: `${s.period}-14`, ym: s.period, direction: 'out' as const, amount: 75_000, label: 'Parkir (salah catat?)' }],
+  }
+}

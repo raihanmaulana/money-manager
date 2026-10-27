@@ -6,6 +6,8 @@ import { queryPockets } from './pockets.ts'
 import { ensureRecurring } from './recurring.ts'
 import { supabaseServer } from './supabase/server.ts'
 import * as demo from './demo.ts'
+import { reconcileStatement } from './reconcile-data.ts'
+import type { RecResult } from './reconcile.ts'
 import type { Bill, BillMonth, BillPayment, BudgetItem, Expense, Goal, GoalDeposit, IncomeItem, MonthData, PocketAdjustment, NeedItem, NeedPurchase, PocketView, Recurring, Split, Transfer, DebtEntry, DebtPayment, DebtPerson, Statement, StatementTxn, TemplateLine } from './types.ts'
 
 export const DEMO = process.env.DEMO_MODE === '1'
@@ -261,4 +263,13 @@ export async function loadTemplate(ctx: Ctx): Promise<TemplateLine[]> {
     const { data } = await sb.from('month_template').select('*').eq('owner_id', ctx.userId).order('sort').order('created_at')
     return (data ?? []).map((r) => ({ ...r, amount: Number(r.amount) || 0 })) as TemplateLine[]
   } catch { return [] }
+}
+
+/** Hasil pencocokan transaksi statement dengan Catatan di aplikasi (null bila statement tak punya sumber dana). */
+export async function loadReconcile(ctx: Ctx, s: Statement, txns: StatementTxn[]): Promise<(RecResult & { from: string; to: string }) | null> {
+  if (DEMO) return demo.demoReconcile(s, txns)
+  try {
+    const sb = await supabaseServer()
+    return await reconcileStatement(sb, ctx.userId, s, txns)
+  } catch { return null }
 }
