@@ -1,7 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-const PUBLIC = ['/masuk', '/auth', '/api/cron'] // /api/cron memeriksa rahasianya sendiri
+const PUBLIC = ['/masuk', '/auth', '/api/cron', '/api/telegram'] // dua route API ini memeriksa rahasianya sendiri
 const isPublic = (path: string) => path === '/' || PUBLIC.some((p) => path === p || path.startsWith(p + '/'))
 
 export async function middleware(req: NextRequest) {

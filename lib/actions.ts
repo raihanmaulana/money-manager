@@ -1,13 +1,13 @@
 'use server'
 
-import { cookies } from 'next/headers'
+import { cookies, headers } from 'next/headers'
 import { revalidatePath } from 'next/cache'
 import { isCreditKind } from './types.ts'
 import { isYm, planItems, ymAdd, ymDiff, ymLabel, ymOfDate } from './calc.ts'
 import { DEMO } from './data.ts'
 import { queryPockets } from './pockets.ts'
 import { supabaseServer } from './supabase/server.ts'
-import { sendTelegram } from './telegram.ts'
+import { sendTelegram, tgCall, webhookSecret } from './telegram.ts'
 import { fmtRp, fullSyncEvents, logEvent, pocketEvents, postEvents, queue, rowEvent, sheetsEnabled, summaryEvent, type SheetEvent, type Table } from './sheets.ts'
 
 const GRP = ['kebutuhan', 'gaya_hidup', 'tabungan', 'investasi'] as const
@@ -957,5 +957,27 @@ export async function disconnectTelegram() {
   const c = await me()
   if (!c) return done()
   await c.sb.from('user_telegram').delete().eq('owner_id', c.uid)
+  done()
+}
+
+/** Daftarkan webhook supaya pesan ke bot masuk ke aplikasi (pencatatan lewat chat). */
+export async function enableTelegramCapture(): Promise<string | void> {
+  const c = await me()
+  if (!c) return done()
+  const h = await headers()
+  const host = h.get('x-forwarded-host') ?? h.get('host')
+  if (!host || /^localhost|^127\./.test(host)) return 'Hanya bisa diaktifkan dari alamat aplikasi yang sudah online (bukan localhost).'
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) return 'SUPABASE_SERVICE_ROLE_KEY belum diisi di Vercel (lihat README), padahal dibutuhkan untuk menerima pesan.'
+  const { data: chat } = await c.sb.from('user_telegram').select('chat_id').eq('owner_id', c.uid).maybeSingle()
+  if (!chat) return 'Hubungkan Chat ID Telegram dulu.'
+  const r = await tgCall('setWebhook', { url: `https://${host}/api/telegram`, secret_token: await webhookSecret(), allowed_updates: ['message', 'callback_query'], drop_pending_updates: true })
+  if (!r.ok) return `Gagal mengaktifkan: ${r.description ?? 'Telegram menolak.'}`
+  await sendTelegram(chat.chat_id as string, '✅ Pencatatan lewat chat aktif. Coba kirim: Makan siang 20 ribu\n\nKetik /bantuan untuk contoh penulisan.')
+  done()
+}
+export async function disableTelegramCapture() {
+  const c = await me()
+  if (!c) return done()
+  await tgCall('deleteWebhook', { drop_pending_updates: true })
   done()
 }

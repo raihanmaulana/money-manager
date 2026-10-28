@@ -41,5 +41,6 @@ Tiap pagi 08.00 WIB (Vercel Cron, `vercel.json`) bot mengirim kebutuhan yang wak
 1. Telegram → cari **@BotFather** → `/newbot` → salin **token**.
 2. Jalankan `supabase/tambah-telegram.sql` di Supabase SQL Editor.
 3. Vercel → Settings → Environment Variables: `TELEGRAM_BOT_TOKEN`, `CRON_SECRET` (string acak panjang), `SUPABASE_SERVICE_ROLE_KEY` (Supabase → Project Settings → API → *service_role*, rahasia, jangan diawali `NEXT_PUBLIC_`). Redeploy.
+4. Catat pengeluaran lewat chat (opsional): setelah Chat ID terhubung, buka Pengaturan → Pengingat Telegram → *Aktifkan pencatatan lewat chat*. Rahasia webhook diturunkan otomatis dari token bot, tanpa variabel tambahan. Tulis misalnya `Makan siang 20 ribu` atau `Kopi 25k gopay kemarin`.
 4. Buka bot kamu di Telegram, tekan **Start**. Ambil Chat ID dari **@userinfobot**.
 5. Arus → Pengaturan → Pengingat Telegram → isi Chat ID → *Hubungkan dan kirim tes*.

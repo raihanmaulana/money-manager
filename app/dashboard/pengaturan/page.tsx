@@ -3,20 +3,22 @@ import { HandCoins, Send, Sheet, UserRound } from 'lucide-react'
 import { getCtx, loadDebtMenu, loadPockets, loadTelegram, loadTemplate } from '@/lib/data'
 import { ymLabel } from '@/lib/calc'
 import { TemplateTile } from '@/components/TemplateTile'
-import { disconnectTelegram, saveTelegram, updateName } from '@/lib/actions'
+import { disableTelegramCapture, disconnectTelegram, enableTelegramCapture, saveTelegram, updateName } from '@/lib/actions'
 import { LogoutButton } from '@/components/LogoutButton'
 import { PageHead } from '@/components/PageHead'
 import { SheetSync } from '@/components/SheetSync'
 import { sheetsEnabled } from '@/lib/sheets'
-import { telegramEnabled } from '@/lib/telegram'
+import { captureActive, telegramEnabled } from '@/lib/telegram'
 import { ActionButton, QuickForm, Submit } from '@/components/Fields'
 import { DebtMenuToggle } from '@/components/DebtMenuToggle'
 
 export const metadata = { title: 'Pengaturan' }
+const DEMO_ON = process.env.DEMO_MODE === '1'
 
 export default async function Pengaturan() {
   const ctx = await getCtx()
   const [chat, debtOn, tpl, { pockets }] = await Promise.all([loadTelegram(ctx), loadDebtMenu(), loadTemplate(ctx), loadPockets(ctx)])
+  const capture = chat && !DEMO_ON ? await captureActive().catch(() => false) : false
   return (
     <>
       <PageHead ctx={ctx} title="Pengaturan" month={false} />
@@ -53,6 +55,19 @@ export default async function Pengaturan() {
                   {chat ? <ActionButton action={disconnectTelegram} args={[]} icon={false} text="Putuskan" label="Putuskan Telegram" className="btn small ghost" /> : null}
                 </div>
               </QuickForm>
+              {chat ? (
+                <div className="stack" style={{ marginTop: 'var(--space-5)', paddingTop: 'var(--space-4)', borderTop: 'var(--rule-w) solid var(--color-rule)' }}>
+                  <div className="cluster"><b>Catat lewat chat</b>{capture ? <span className="chip ok">Aktif</span> : null}</div>
+                  <p className="hint">Kirim pesan ke bot seperti <span className="mono">Makan siang 20 ribu</span> atau <span className="mono">Kopi 25k gopay kemarin</span>, dan langsung tercatat sebagai pengeluaran. Setiap balasan punya tombol Batalkan. Butuh <span className="mono">SUPABASE_SERVICE_ROLE_KEY</span> di Vercel (sama seperti pengingat pagi).</p>
+                  {capture ? (
+                    <ActionButton action={disableTelegramCapture} args={[]} icon={false} text="Matikan pencatatan chat" label="Matikan pencatatan lewat chat" className="btn small ghost" />
+                  ) : (
+                    <QuickForm action={enableTelegramCapture} className="cluster" resetOnDone={false} toastText="Aktif, coba kirim pesan ke bot">
+                      <Submit className="btn small" pendingText="Mengaktifkan…">Aktifkan pencatatan lewat chat</Submit>
+                    </QuickForm>
+                  )}
+                </div>
+              ) : null}
             </>
           )}
         </section>
