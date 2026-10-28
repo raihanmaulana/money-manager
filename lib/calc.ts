@@ -228,6 +228,7 @@ export function pocketBalances(
   adjustments: { adjusted_on: string; amount: number; pocket_id?: string | null }[] = [],
   cardPays: { paid_on: string; amount: number; card_pocket_id: string }[] = [], // pembayaran tagihan kartu: memulihkan limit kartunya
   debtPays: { paid_on: string; amount: number; direction: string; pocket_id?: string | null }[] = [], // pelunasan hutang split bill
+  cashbacks: { received_on: string; amount: number; pocket_id?: string | null }[] = [], // cashback e-wallet: menambah saldo, bukan pemasukan anggaran
 ): PocketView[] {
   // Kartu kredit: saldo = −terpakai (opening_balance = terpakai awal)
   const bal = new Map<string, number>(pockets.map((p) => [p.id, isCreditKind(p.kind) ? -p.opening_balance : p.opening_balance]))
@@ -240,6 +241,7 @@ export function pocketBalances(
   for (const p of payments) if (p.paid_on <= today.iso) add(p.pocket_id, -p.amount)
   for (const a of adjustments) if (a.adjusted_on <= today.iso) add(a.pocket_id, a.amount)
   for (const c of cardPays) if (c.paid_on <= today.iso && counts(c.card_pocket_id, c.paid_on)) add(c.card_pocket_id, c.amount)
+  for (const k of cashbacks) if (k.received_on <= today.iso) add(k.pocket_id, k.amount)
   for (const d of debtPays) if (d.paid_on <= today.iso) add(d.pocket_id, d.direction === 'them_to_me' ? d.amount : -d.amount)
   for (const t of transfers) if (t.moved_on <= today.iso) { add(t.from_pocket, -(t.amount + (t.fee ?? 0))); add(t.to_pocket, t.amount) }
   return pockets.map((p) => ({ ...p, saldo: bal.get(p.id) ?? 0 }))

@@ -8,7 +8,7 @@ import { supabaseServer } from './supabase/server.ts'
 import * as demo from './demo.ts'
 import { reconcileStatement } from './reconcile-data.ts'
 import type { RecResult } from './reconcile.ts'
-import type { Bill, BillMonth, BillPayment, BudgetItem, Expense, Goal, GoalDeposit, IncomeItem, MonthData, PocketAdjustment, NeedItem, NeedPurchase, PocketView, Recurring, Split, Transfer, DebtEntry, DebtPayment, DebtPerson, Statement, StatementTxn, TemplateLine } from './types.ts'
+import type { Bill, BillMonth, BillPayment, BudgetItem, Expense, Goal, GoalDeposit, IncomeItem, MonthData, PocketAdjustment, NeedItem, NeedPurchase, PocketView, Recurring, Split, Transfer, DebtEntry, DebtPayment, DebtPerson, Statement, StatementTxn, TemplateLine, Cashback } from './types.ts'
 
 export const DEMO = process.env.DEMO_MODE === '1'
 
@@ -101,7 +101,7 @@ export async function loadGoals(ctx: Ctx): Promise<{ goals: Goal[]; deposits: Go
 export async function loadPockets(ctx: Ctx): Promise<{ pockets: PocketView[]; transfers: Transfer[]; adjustments: PocketAdjustment[] }> {
   if (DEMO) {
     const transfers = demo.demoTransfers
-    return { pockets: pocketBalances(demo.demoPockets, demo.demoIncome('2026-10'), demo.demoExpenses('2026-10'), demo.demoDeposits, transfers, ctx.today, demo.demoPayments, [], demo.demoPayments.filter((x) => x.bill_id === 'l5').map((x) => ({ paid_on: x.paid_on, amount: x.amount, card_pocket_id: 'p5' }))), transfers, adjustments: [] }
+    return { pockets: pocketBalances(demo.demoPockets, demo.demoIncome('2026-10'), demo.demoExpenses('2026-10'), demo.demoDeposits, transfers, ctx.today, demo.demoPayments, [], demo.demoPayments.filter((x) => x.bill_id === 'l5').map((x) => ({ paid_on: x.paid_on, amount: x.amount, card_pocket_id: 'p5' })), [], demo.demoCashbacks()), transfers, adjustments: [] }
   }
   return queryPockets(await supabaseServer(), ctx.userId, ctx.today)
 }
@@ -289,5 +289,16 @@ export async function loadDebtPaymentsMonth(ctx: Ctx): Promise<{ id: string; per
     ])
     const names = new Map((ppl.data ?? []).map((p) => [p.id as string, p.name as string]))
     return (pay.data ?? []).map((r) => ({ id: r.id as string, person: names.get(r.person_id as string) ?? '—', direction: r.direction as 'them_to_me' | 'me_to_them', amount: num(r.amount), paid_on: r.paid_on as string, note: (r.note as string) ?? '', pocket_id: (r.pocket_id as string) ?? null }))
+  } catch { return [] }
+}
+
+/** Cashback e-wallet pada bulan yang dipilih. */
+export async function loadCashbacks(ctx: Ctx): Promise<Cashback[]> {
+  const from = `${ctx.ym}-01`, to = `${ctx.ym}-31`
+  if (DEMO) return demo.demoCashbacks().filter((c) => c.received_on >= from && c.received_on <= to)
+  try {
+    const sb = await supabaseServer()
+    const { data } = await sb.from('pocket_cashbacks').select('id,pocket_id,received_on,amount,note').eq('owner_id', ctx.userId).gte('received_on', from).lte('received_on', to).order('received_on', { ascending: false }).order('created_at', { ascending: false })
+    return (data ?? []).map((r) => ({ ...r, amount: num(r.amount) })) as Cashback[]
   } catch { return [] }
 }

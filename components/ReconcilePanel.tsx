@@ -7,7 +7,7 @@ import { QuickForm, Submit } from './Fields'
 
 type Txn = { id: string; txn_on: string; kind: string; description: string; direction: 'in' | 'out'; amount: number }
 type Move = { id: string; src: string; date: string | null; direction: 'in' | 'out'; amount: number; label: string }
-const SRC: Record<string, string> = { catatan: 'Catatan', tagihan: 'Tagihan', pindah: 'Pindah dana', hutang: 'Hutang', pemasukan: 'Pemasukan', kartu: 'Bayar kartu' }
+const SRC: Record<string, string> = { catatan: 'Catatan', tagihan: 'Tagihan', pindah: 'Pindah dana', hutang: 'Hutang', pemasukan: 'Pemasukan', kartu: 'Bayar kartu', cashback: 'Cashback' }
 const tgl = (iso: string) => `${iso.slice(8)}/${iso.slice(5, 7)}`
 const sign = (d: 'in' | 'out', n: number) => `${d === 'in' ? '+' : '−'} ${rp(n)}`
 

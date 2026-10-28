@@ -128,3 +128,7 @@ export const demoReconcile = (s: import('./types.ts').Statement, txns: import('.
     appOnly: [{ id: 'm3', src: 'catatan' as const, date: `${s.period}-14`, ym: s.period, direction: 'out' as const, amount: 75_000, label: 'Parkir (salah catat?)' }],
   }
 }
+
+export const demoCashbacks = (): import('./types.ts').Cashback[] => [
+  { id: 'cb1', pocket_id: 'p2', received_on: '2026-10-12', amount: 4_500, note: 'Cashback belanja' },
+]

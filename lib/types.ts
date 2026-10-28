@@ -54,3 +54,6 @@ export type StatementTxn = { id: string; txn_on: string; kind: string; descripti
 
 /** Template bulan baru: pemasukan/potongan (income) atau kategori anggaran (budget). */
 export type TemplateLine = { id: string; section: 'income' | 'budget'; kind: 'masuk' | 'potong' | null; grp: Grp | null; label: string; amount: number; pocket_id: string | null; sort: number }
+
+/** Cashback e-wallet: menambah saldo sumber dana tanpa memengaruhi anggaran. */
+export type Cashback = { id: string; pocket_id: string; received_on: string; amount: number; note: string }

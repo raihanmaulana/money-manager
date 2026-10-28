@@ -1,4 +1,4 @@
-import { getCtx, loadDebtPaymentsMonth, loadMonth, loadPockets, loadSplits } from '@/lib/data'
+import { getCtx, loadCashbacks, loadDebtPaymentsMonth, loadMonth, loadPockets, loadSplits } from '@/lib/data'
 import { isCreditKind } from '@/lib/types'
 import { billRowsFor, rp, summarize, ymLabel } from '@/lib/calc'
 import { PageHead } from '@/components/PageHead'
@@ -11,7 +11,7 @@ const tgl = (iso: string) => `${Number(iso.slice(8))}/${iso.slice(5, 7)}`
 
 export default async function Laporan() {
   const ctx = await getCtx()
-  const [data, { pockets }, splits, debtPays] = await Promise.all([loadMonth(ctx), loadPockets(ctx), loadSplits(ctx), loadDebtPaymentsMonth(ctx)])
+  const [data, { pockets }, splits, debtPays, cashbacks] = await Promise.all([loadMonth(ctx), loadPockets(ctx), loadSplits(ctx), loadDebtPaymentsMonth(ctx), loadCashbacks(ctx)])
   const pk = (id: string | null) => pockets.find((p) => p.id === id)?.name
   const dIn = debtPays.filter((d) => d.direction === 'them_to_me').reduce((t, d) => t + d.amount, 0)
   const dOut = debtPays.filter((d) => d.direction === 'me_to_them').reduce((t, d) => t + d.amount, 0)
@@ -144,6 +144,20 @@ export default async function Laporan() {
               </tfoot>
             </table>
             <p className="hint" style={{ marginTop: 'var(--space-2)' }}>Pelunasan mengubah saldo sumber dana, tetapi bukan pemasukan atau pengeluaran, jadi tidak memengaruhi uang belanja dan anggaran bulan ini.</p>
+          </section>
+        ) : null}
+
+        {cashbacks.length ? (
+          <section className="rpt-sec">
+            <h2>Cashback e-wallet <small>informasi, tidak masuk anggaran</small></h2>
+            <table className="report-table">
+              <thead><tr><th>Keterangan</th><th>E-wallet</th><th className="r">Tgl</th><th className="r">Nominal</th></tr></thead>
+              <tbody>
+                {cashbacks.map((c) => <tr key={c.id}><td>{c.note || 'Cashback'}</td><td>{pk(c.pocket_id) ?? '—'}</td><td className="r">{tgl(c.received_on)}</td><td className="r">+ {rp(c.amount)}</td></tr>)}
+              </tbody>
+              <tfoot><tr className="total"><td colSpan={3}>Total cashback</td><td className="r">+ {rp(cashbacks.reduce((t, c) => t + c.amount, 0))}</td></tr></tfoot>
+            </table>
+            <p className="hint" style={{ marginTop: 'var(--space-2)' }}>Cashback menambah saldo e-wallet, tetapi bukan pemasukan, jadi tidak memengaruhi uang belanja dan anggaran bulan ini.</p>
           </section>
         ) : null}
 

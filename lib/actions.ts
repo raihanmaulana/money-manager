@@ -981,3 +981,25 @@ export async function disableTelegramCapture() {
   await tgCall('deleteWebhook', { drop_pending_updates: true })
   done()
 }
+
+// ---------- Cashback e-wallet ----------
+/** Cashback menambah saldo e-wallet, tapi bukan pemasukan: tidak memengaruhi anggaran. */
+export async function addCashback(formData: FormData): Promise<string | void> {
+  const received_on = text(formData.get('received_on'), 10)
+  const amount = money(formData.get('amount'))
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(received_on) || !isYm(received_on.slice(0, 7)) || amount <= 0) return 'Isi nominal dan tanggalnya.'
+  const c = await me()
+  if (!c) return done()
+  const pid = text(formData.get('pocket_id'), 40)
+  const { data: pocket } = pid ? await c.sb.from('pockets').select('id,kind').eq('id', pid).eq('owner_id', c.uid).maybeSingle() : { data: null }
+  if (!pocket || pocket.kind !== 'ewallet') return 'Pilih sumber dana e-wallet.'
+  const { error } = await c.sb.from('pocket_cashbacks').insert({ owner_id: c.uid, pocket_id: pocket.id, received_on, amount, note: text(formData.get('note'), 120) })
+  if (error) return /does not exist|schema cache/i.test(error.message) || error.code === '42P01' ? 'Tabel cashback belum ada. Jalankan supabase/tambah-cashback.sql di SQL Editor Supabase dulu.' : `Gagal menyimpan: ${error.message}`
+  done()
+}
+export async function deleteCashback(id: string) {
+  const c = await me()
+  if (!c) return done()
+  await c.sb.from('pocket_cashbacks').delete().eq('id', id).eq('owner_id', c.uid)
+  done()
+}

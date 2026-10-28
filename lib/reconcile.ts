@@ -6,7 +6,7 @@
 export type RecTxn = { id: string; txn_on: string; kind: string; description: string; direction: 'in' | 'out'; amount: number }
 export type Movement = {
   id: string
-  src: 'catatan' | 'tagihan' | 'pindah' | 'hutang' | 'pemasukan' | 'kartu'
+  src: 'catatan' | 'tagihan' | 'pindah' | 'hutang' | 'pemasukan' | 'kartu' | 'cashback'
   /** null untuk pemasukan, karena hanya tercatat per bulan */
   date: string | null
   ym: string

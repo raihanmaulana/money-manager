@@ -18,7 +18,7 @@ export function statementWindow(s: { period: string; pocket_kind: string }, txns
 
 export async function pocketMovements(sb: SupabaseClient, owner: string, pocketId: string, from: string, to: string): Promise<Movement[]> {
   const fromYm = from.slice(0, 7), toYm = to.slice(0, 7)
-  const [exp, pay, trOut, trIn, dp, inc, cards] = await Promise.all([
+  const [exp, pay, trOut, trIn, dp, inc, cards, cb] = await Promise.all([
     sb.from('expenses').select('id,spent_on,amount,note,transfer_id').eq('owner_id', owner).eq('pocket_id', pocketId).gte('spent_on', from).lte('spent_on', to),
     sb.from('bill_payments').select('id,paid_on,amount,bills(name)').eq('owner_id', owner).eq('pocket_id', pocketId).gte('paid_on', from).lte('paid_on', to),
     sb.from('pocket_transfers').select('id,moved_on,amount,fee,note').eq('owner_id', owner).eq('from_pocket', pocketId).gte('moved_on', from).lte('moved_on', to),
@@ -26,6 +26,7 @@ export async function pocketMovements(sb: SupabaseClient, owner: string, pocketI
     sb.from('debt_payments').select('id,paid_on,amount,direction,note').eq('owner_id', owner).eq('pocket_id', pocketId).gte('paid_on', from).lte('paid_on', to),
     sb.from('income_items').select('id,ym,kind,label,amount').eq('owner_id', owner).eq('pocket_id', pocketId).gte('ym', fromYm).lte('ym', toYm),
     sb.from('bills').select('id,kind,principal,card_pocket_id').eq('owner_id', owner).eq('card_pocket_id', pocketId),
+    sb.from('pocket_cashbacks').select('id,received_on,amount,note').eq('owner_id', owner).eq('pocket_id', pocketId).gte('received_on', from).lte('received_on', to),
   ])
   const out: Movement[] = []
   // Catatan biaya admin otomatis dari Pindah dana (transfer_id) dihitung lewat pindah dana itu sendiri
@@ -37,6 +38,7 @@ export async function pocketMovements(sb: SupabaseClient, owner: string, pocketI
   }
   for (const r of trIn.data ?? []) out.push({ id: `${r.id}`, src: 'pindah', date: r.moved_on as string, ym: (r.moved_on as string).slice(0, 7), direction: 'in', amount: num(r.amount), label: (r.note as string) || 'Pindah dana masuk' })
   for (const r of dp.data ?? []) out.push({ id: r.id as string, src: 'hutang', date: r.paid_on as string, ym: (r.paid_on as string).slice(0, 7), direction: r.direction === 'them_to_me' ? 'in' : 'out', amount: num(r.amount), label: (r.note as string) || 'Pelunasan hutang' })
+  for (const r of cb.data ?? []) out.push({ id: r.id as string, src: 'cashback', date: r.received_on as string, ym: (r.received_on as string).slice(0, 7), direction: 'in', amount: num(r.amount), label: (r.note as string) || 'Cashback' })
   for (const r of inc.data ?? []) out.push({ id: r.id as string, src: 'pemasukan', date: null, ym: r.ym as string, direction: r.kind === 'masuk' ? 'in' : 'out', amount: num(r.amount), label: r.label as string })
   if ((cards.data ?? []).length) {
     const ids = (cards.data ?? []).map((b) => b.id as string)

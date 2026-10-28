@@ -1,9 +1,9 @@
 import { TileTitle } from '@/components/TileTitle'
 import Link from 'next/link'
-import { Download, FileText, ListChecks, Plus, Repeat, Target, Users } from 'lucide-react'
-import { getCtx, loadMonth, loadPockets, loadRecurring, loadSplits } from '@/lib/data'
+import { Download, FileText, ListChecks, Plus, Repeat, Target, Users, Wallet } from 'lucide-react'
+import { getCtx, loadCashbacks, loadMonth, loadPockets, loadRecurring, loadSplits } from '@/lib/data'
 import { billRowsFor, daysInMonth, rp, summarize, ymLabel } from '@/lib/calc'
-import { addExpense, addRecurring, deleteRecurring, deleteSplit, setRecurringField } from '@/lib/actions'
+import { addCashback, addExpense, addRecurring, deleteCashback, deleteRecurring, deleteSplit, setRecurringField } from '@/lib/actions'
 import { ConfirmButton } from '@/components/ConfirmButton'
 import { PageHead } from '@/components/PageHead'
 import { EmptyMonth } from '@/components/EmptyMonth'
@@ -12,13 +12,14 @@ import { ExpenseList } from '@/components/ExpenseList'
 import { ShowMore, Fold } from '@/components/ShowMore'
 import { SplitFields } from '@/components/SplitFields'
 import { PocketSelect } from '@/components/PocketSelect'
-import { InlineField, MoneyInput, QuickForm, Submit } from '@/components/Fields'
+import { ActionButton, InlineField, MoneyInput, QuickForm, Submit } from '@/components/Fields'
 
 export const metadata = { title: 'Catatan Pengeluaran' }
 
 export default async function Catatan() {
   const ctx = await getCtx()
-  const [data, { pockets }, recurring, splits] = await Promise.all([loadMonth(ctx), loadPockets(ctx), loadRecurring(ctx), loadSplits(ctx)])
+  const [data, { pockets }, recurring, splits, cashbacks] = await Promise.all([loadMonth(ctx), loadPockets(ctx), loadRecurring(ctx), loadSplits(ctx), loadCashbacks(ctx)])
+  const wallets = pockets.filter((p) => p.kind === 'ewallet')
   const rows = billRowsFor(data.bills, data.billMonths, ctx.ym)
   const s = summarize(data.income, data.budget, data.expenses, rows, ctx.today, ctx.ym)
   if (!data.income.length && !data.budget.length) {
@@ -59,6 +60,37 @@ export default async function Catatan() {
               </QuickForm>
             </section>
           )}
+
+          {wallets.length || cashbacks.length ? (
+            <section className="tile plain" style={{ ['--i' as string]: 2 }} aria-labelledby="h-cb">
+              <div className="tile-head"><TileTitle id="h-cb" icon={Wallet}>Cashback e-wallet</TileTitle><span className="tile-note">{cashbacks.length ? rp(cashbacks.reduce((t, c) => t + c.amount, 0)) : 'bulan ini'}</span></div>
+              <p className="hint" style={{ marginBottom: 'var(--space-3)' }}>Cashback (mis. ShopeePay) menambah saldo e-wallet tapi bukan pemasukan, jadi tidak memengaruhi anggaran. Catat supaya saldo di aplikasi tetap sama dengan di e-wallet.</p>
+              {cashbacks.length ? (
+                <ShowMore limit={3} noun="cashback" className="rows">
+                  {cashbacks.map((c) => (
+                    <li key={c.id} className="row wrap">
+                      <span className="grow" style={{ minWidth: '9rem' }}><span className="name">{c.note || 'Cashback'}</span><span className="meta">{c.received_on.slice(8)}/{c.received_on.slice(5, 7)} · {pockets.find((p) => p.id === c.pocket_id)?.name ?? '—'}</span></span>
+                      <span className="amt">+ {rp(c.amount)}</span>
+                      <ActionButton action={deleteCashback} args={[c.id]} label={`Hapus cashback ${rp(c.amount)}`} />
+                    </li>
+                  ))}
+                </ShowMore>
+              ) : null}
+              {wallets.length ? (
+                <Fold summary={<><Plus aria-hidden size={16} /> Catat cashback</>}>
+                  <QuickForm action={addCashback} className="stack">
+                    <div className="form-grid">
+                      <label className="field"><span>Berapa?</span><MoneyInput name="amount" label="Nominal cashback" required /></label>
+                      <label className="field"><span>Tanggal</span><DatePicker name="received_on" label="Tanggal cashback" lockable defaultValue={defDate} min={`${ctx.ym}-01`} max={`${ctx.ym}-${String(daysInMonth(ctx.ym)).padStart(2, '0')}`} /></label>
+                      <PocketSelect pockets={wallets} label="Masuk ke e-wallet" full defaultValue={wallets[0]?.id} />
+                      <label className="field full"><span>Catatan (opsional)</span><input className="input" name="note" maxLength={120} placeholder="mis. cashback belanja" /></label>
+                    </div>
+                    <Submit className="btn ghost"><Plus aria-hidden /> Simpan cashback</Submit>
+                  </QuickForm>
+                </Fold>
+              ) : null}
+            </section>
+          ) : null}
 
           <section className="tile plain" style={{ ['--i' as string]: 2 }} aria-labelledby="h-ulang">
             <div className="tile-head"><TileTitle id="h-ulang" icon={Repeat}>Pengeluaran berulang</TileTitle><span className="tile-note">{recurring.length} aktif</span></div>

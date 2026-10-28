@@ -205,3 +205,12 @@ test('hutang split bill: selisih, pelunasan, dan pembacaan sel Excel', async () 
   assert.equal(r.rows.length, 2); assert.equal(r.errors.length, 1)
   assert.equal(r.rows[1].paid_by, 'them'); assert.equal(r.rows[1].share, 0)
 })
+
+test('cashback e-wallet menambah saldo tanpa memengaruhi pemasukan', async () => {
+  const { pocketBalances } = await import('./calc.ts')
+  const w = { id: 'w', name: 'ShopeePay', kind: 'ewallet' as const, opening_balance: 100_000, sort: 0 }
+  const r = pocketBalances([w], [], [], [], [], { ym: '2026-10', iso: '2026-10-20' }, [], [], [], [], [
+    { received_on: '2026-10-12', amount: 4_500, pocket_id: 'w' }, { received_on: '2026-10-25', amount: 9_000, pocket_id: 'w' }, // belum tiba
+  ])
+  assert.equal(r[0].saldo, 104_500)
+})
