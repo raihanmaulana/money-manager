@@ -247,11 +247,12 @@ export async function addExpense(formData: FormData): Promise<string | void> {
     budget_item_id: item || null, note, amount, pocket_id,
   }).select('id').single()
   if (row) await saveSplits(c, formData, row.id as string, spent_on, note)
+  const cbErr = row ? await syncCashback(c, row.id as string, pocket_id, spent_on, formData.get('cashback')) : undefined
   if (row) await mirror(c, [{ table: 'expenses', id: row.id }], 'Tambah', 'Catatan', `${spent_on}: ${note || 'pengeluaran'} ${fmtRp(amount)}`, [spent_on.slice(0, 7)])
   done()
-  return lowBalance(c, pocket_id)
+  return cbErr || lowBalance(c, pocket_id)
 }
-export async function updateExpense(formData: FormData) {
+export async function updateExpense(formData: FormData): Promise<string | void> {
   const id = text(formData.get('id'), 40)
   const spent_on = text(formData.get('spent_on'), 10)
   const amount = money(formData.get('amount'))
@@ -270,8 +271,10 @@ export async function updateExpense(formData: FormData) {
   const note = text(formData.get('note'), 120)
   await c.sb.from('expenses').update({ amount, spent_on, ym: spent_on.slice(0, 7), budget_item_id, pocket_id, note }).eq('id', id).eq('owner_id', c.uid)
   await saveSplits(c, formData, id, spent_on, note)
+  const cbErr = await syncCashback(c, id, pocket_id, spent_on, formData.get('cashback'))
   await mirror(c, [{ table: 'expenses', id }], 'Ubah', 'Catatan', `${old.spent_on}: ${old.note || 'pengeluaran'} ${fmtRp(Number(old.amount))} → ${spent_on}: ${note || 'pengeluaran'} ${fmtRp(amount)}`, [old.ym, spent_on.slice(0, 7)])
   done()
+  return cbErr
 }
 /** Ganti sumber dana sebuah pemasukan atau setoran tabungan (untuk membetulkan salah pilih). */
 export async function setRowPocket(table: 'income_items' | 'goal_deposits', id: string, _field: string, value: string) {
@@ -983,19 +986,15 @@ export async function disableTelegramCapture() {
 }
 
 // ---------- Cashback e-wallet ----------
-/** Cashback menambah saldo e-wallet, tapi bukan pemasukan: tidak memengaruhi anggaran. */
-export async function addCashback(formData: FormData): Promise<string | void> {
-  const received_on = text(formData.get('received_on'), 10)
-  const amount = money(formData.get('amount'))
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(received_on) || !isYm(received_on.slice(0, 7)) || amount <= 0) return 'Isi nominal dan tanggalnya.'
-  const c = await me()
-  if (!c) return done()
-  const pid = text(formData.get('pocket_id'), 40)
-  const { data: pocket } = pid ? await c.sb.from('pockets').select('id,kind').eq('id', pid).eq('owner_id', c.uid).maybeSingle() : { data: null }
-  if (!pocket || pocket.kind !== 'ewallet') return 'Pilih sumber dana e-wallet.'
-  const { error } = await c.sb.from('pocket_cashbacks').insert({ owner_id: c.uid, pocket_id: pocket.id, received_on, amount, note: text(formData.get('note'), 120) })
-  if (error) return /does not exist|schema cache/i.test(error.message) || error.code === '42P01' ? 'Tabel cashback belum ada. Jalankan supabase/tambah-cashback.sql di SQL Editor Supabase dulu.' : `Gagal menyimpan: ${error.message}`
-  done()
+/** Cashback melekat pada transaksi e-wallet: menambah saldo e-wallet, tapi bukan pemasukan (tidak memengaruhi anggaran). */
+async function syncCashback(c: C, expenseId: string, pocketId: string | null, spentOn: string, raw: FormDataEntryValue | null): Promise<string | void> {
+  await c.sb.from('pocket_cashbacks').delete().eq('expense_id', expenseId).eq('owner_id', c.uid)
+  const amount = money(raw)
+  if (!pocketId || amount <= 0) return
+  const { data: p } = await c.sb.from('pockets').select('kind').eq('id', pocketId).eq('owner_id', c.uid).maybeSingle()
+  if (p?.kind !== 'ewallet') return
+  const { error } = await c.sb.from('pocket_cashbacks').insert({ owner_id: c.uid, pocket_id: pocketId, received_on: spentOn, amount, note: '', expense_id: expenseId })
+  if (error) return /does not exist|schema cache|expense_id/i.test(error.message) || error.code === '42P01' ? '⚠ Catatan tersimpan, tapi cashback belum bisa disimpan. Jalankan supabase/tambah-cashback.sql di SQL Editor Supabase dulu.' : `⚠ Catatan tersimpan, tapi cashback gagal: ${error.message}`
 }
 export async function deleteCashback(id: string) {
   const c = await me()

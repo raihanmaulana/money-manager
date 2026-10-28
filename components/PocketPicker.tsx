@@ -8,7 +8,7 @@ import type { Pocket } from '@/lib/types'
 const KIND = { bank: 'Bank', ewallet: 'E-wallet', tunai: 'Tunai', lainnya: 'Lainnya', kredit: 'Kartu kredit', paylater: 'PayLater' } as const
 
 /** Pilihan sumber dana: tombol ringkas yang membuka daftar bermerek bank / e-wallet. Nilai dikirim lewat input tersembunyi. */
-export function PocketPicker({ pockets, name = 'pocket_id', label, defaultValue = '' }: { pockets: Pocket[]; name?: string; label: string; defaultValue?: string }) {
+export function PocketPicker({ pockets, name = 'pocket_id', label, defaultValue = '', onChange }: { pockets: Pocket[]; name?: string; label: string; defaultValue?: string; onChange?: (id: string) => void }) {
   const [value, setValue] = useState(defaultValue)
   const [open, setOpen] = useState(false)
   const [idx, setIdx] = useState(0)
@@ -21,10 +21,10 @@ export function PocketPicker({ pockets, name = 'pocket_id', label, defaultValue 
 
   useEffect(() => { // QuickForm mengosongkan formulir setelah simpan
     const f = btn.current?.closest('form')
-    const on = () => { setValue(defaultValue); setOpen(false) }
+    const on = () => { setValue(defaultValue); setOpen(false); onChange?.(defaultValue) }
     f?.addEventListener('reset', on)
     return () => f?.removeEventListener('reset', on)
-  }, [defaultValue])
+  }, [defaultValue]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const place = () => {
     const r = btn.current?.getBoundingClientRect()
@@ -36,7 +36,7 @@ export function PocketPicker({ pockets, name = 'pocket_id', label, defaultValue 
   }
   const show = () => { setIdx(Math.max(0, ids.indexOf(value))); place(); setOpen(true) }
   const close = (focus = true) => { setOpen(false); if (focus) btn.current?.focus() }
-  const pick = (v: string) => { setValue(v); close() }
+  const pick = (v: string) => { setValue(v); onChange?.(v); close() }
 
   useEffect(() => {
     if (!open) return

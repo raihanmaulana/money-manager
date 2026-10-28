@@ -6,13 +6,13 @@ import { useBusyTransition } from './Busy'
 import { useToast } from './Toast'
 import { MoneyInput } from './Fields'
 import { SplitFields } from './SplitFields'
-import { PocketSelect } from './PocketSelect'
+import { PocketCashbackFields } from './PocketCashbackFields'
 import { DatePicker } from './DatePicker'
 import { updateExpense } from '@/lib/actions'
 import type { Expense, Pocket } from '@/lib/types'
 
 /** Tombol pensil + popup untuk mengubah catatan pengeluaran (jumlah, kategori, tanggal, sumber dana, catatan). */
-export function ExpenseEditor({ expense, cats, pockets }: { expense: Expense; cats: { id: string; label: string }[]; pockets: Pocket[] }) {
+export function ExpenseEditor({ expense, cats, pockets, cashback = 0 }: { expense: Expense; cats: { id: string; label: string }[]; pockets: Pocket[]; cashback?: number }) {
   const [open, setOpen] = useState(false)
   const [pending, start] = useBusyTransition(true)
   const toast = useToast()
@@ -36,7 +36,7 @@ export function ExpenseEditor({ expense, cats, pockets }: { expense: Expense; ca
     return () => document.removeEventListener('keydown', onKey)
   }, [open])
 
-  const save = (fd: FormData) => start(async () => { await updateExpense(fd); toast('Perubahan tersimpan'); setOpen(false) })
+  const save = (fd: FormData) => start(async () => { const r = await updateExpense(fd); if (typeof r === 'string') toast(r.replace(/^⚠\s*/, ''), 'warn'); else toast('Perubahan tersimpan'); setOpen(false) })
 
   return (
     <>
@@ -56,7 +56,7 @@ export function ExpenseEditor({ expense, cats, pockets }: { expense: Expense; ca
                   </select>
                 </label>
                 <label className="field"><span>Tanggal</span><DatePicker name="spent_on" label="Tanggal" defaultValue={expense.spent_on} inModal /></label>
-                <PocketSelect pockets={pockets} full defaultValue={expense.pocket_id ?? ''} />
+                <PocketCashbackFields pockets={pockets} defaultPocket={expense.pocket_id ?? ''} defaultCashback={cashback} />
                 <label className="field full"><span>Catatan</span><input className="input" name="note" maxLength={120} defaultValue={expense.note} /></label>
                 <SplitFields />
               </div>

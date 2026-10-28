@@ -298,7 +298,7 @@ export async function loadCashbacks(ctx: Ctx): Promise<Cashback[]> {
   if (DEMO) return demo.demoCashbacks().filter((c) => c.received_on >= from && c.received_on <= to)
   try {
     const sb = await supabaseServer()
-    const { data } = await sb.from('pocket_cashbacks').select('id,pocket_id,received_on,amount,note').eq('owner_id', ctx.userId).gte('received_on', from).lte('received_on', to).order('received_on', { ascending: false }).order('created_at', { ascending: false })
+    const { data } = await sb.from('pocket_cashbacks').select('id,pocket_id,received_on,amount,note,expense_id').eq('owner_id', ctx.userId).gte('received_on', from).lte('received_on', to).order('received_on', { ascending: false }).order('created_at', { ascending: false })
     return (data ?? []).map((r) => ({ ...r, amount: num(r.amount) })) as Cashback[]
   } catch { return [] }
 }

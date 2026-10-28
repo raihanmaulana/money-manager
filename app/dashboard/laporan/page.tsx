@@ -151,9 +151,9 @@ export default async function Laporan() {
           <section className="rpt-sec">
             <h2>Cashback e-wallet <small>informasi, tidak masuk anggaran</small></h2>
             <table className="report-table">
-              <thead><tr><th>Keterangan</th><th>E-wallet</th><th className="r">Tgl</th><th className="r">Nominal</th></tr></thead>
+              <thead><tr><th>Dari transaksi</th><th>E-wallet</th><th className="r">Tgl</th><th className="r">Cashback</th></tr></thead>
               <tbody>
-                {cashbacks.map((c) => <tr key={c.id}><td>{c.note || 'Cashback'}</td><td>{pk(c.pocket_id) ?? '—'}</td><td className="r">{tgl(c.received_on)}</td><td className="r">+ {rp(c.amount)}</td></tr>)}
+                {cashbacks.map((c) => <tr key={c.id}><td>{(c.expense_id ? data.expenses.find((e) => e.id === c.expense_id)?.note : '') || c.note || 'Cashback'}</td><td>{pk(c.pocket_id) ?? '—'}</td><td className="r">{tgl(c.received_on)}</td><td className="r">+ {rp(c.amount)}</td></tr>)}
               </tbody>
               <tfoot><tr className="total"><td colSpan={3}>Total cashback</td><td className="r">+ {rp(cashbacks.reduce((t, c) => t + c.amount, 0))}</td></tr></tfoot>
             </table>

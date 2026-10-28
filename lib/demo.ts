@@ -130,5 +130,5 @@ export const demoReconcile = (s: import('./types.ts').Statement, txns: import('.
 }
 
 export const demoCashbacks = (): import('./types.ts').Cashback[] => [
-  { id: 'cb1', pocket_id: 'p2', received_on: '2026-10-12', amount: 4_500, note: 'Cashback belanja' },
+  { id: 'cb1', pocket_id: 'p2', received_on: '2026-10-07', amount: 4_500, note: '', expense_id: 'e4' },
 ]

@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { ChevronDown, Filter, FilterX, Search, Users, CreditCard, ListChecks } from 'lucide-react'
+import { ChevronDown, Filter, FilterX, Search, Users, CreditCard, ListChecks, Sparkles } from 'lucide-react'
 import { ThemedSelect } from './ThemedSelect'
 import { ActionButton } from './Fields'
 import { ExpenseEditor } from './ExpenseEditor'
@@ -10,14 +10,14 @@ import { deleteExpense, setExpensesPocket } from '@/lib/actions'
 import { useBusyTransition } from './Busy'
 import { useToast } from './Toast'
 import { rp } from '@/lib/calc'
-import type { Expense, Pocket, Split } from '@/lib/types'
+import type { Cashback, Expense, Pocket, Split } from '@/lib/types'
 
 const tgl = (iso: string) => new Date(iso + 'T00:00:00Z').toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' })
 const NONE = '__none'
 
 /** Daftar catatan dengan filter tanggal, kategori, sumber dana, dan rentang nominal. */
-export function ExpenseList({ expenses, cats, pockets, days, splits = [] }: {
-  splits?: Split[]; expenses: Expense[]; cats: { id: string; label: string }[]; pockets: Pocket[]; days: number
+export function ExpenseList({ expenses, cats, pockets, days, splits = [], cashbacks = [] }: {
+  splits?: Split[]; cashbacks?: Cashback[]; expenses: Expense[]; cats: { id: string; label: string }[]; pockets: Pocket[]; days: number
 }) {
   const [dayR, setDayR] = useState<[number, number] | null>(null)
   const [amtR, setAmtR] = useState<[number, number] | null>(null)
@@ -151,9 +151,10 @@ export function ExpenseList({ expenses, cats, pockets, days, splits = [] }: {
                   {label(e.budget_item_id) || pk(e.pocket_id) || e.transfer_id || e.recurring_id ? <span className="meta">{[label(e.budget_item_id), pk(e.pocket_id), e.recurring_id ? 'Berulang' : '', e.transfer_id ? 'Otomatis dari Pindah dana (hapus lewat halaman Sumber dana)' : ''].filter(Boolean).join(' · ')}</span> : null}
                   {e.credit ? <span className="chip" title="Dibayar lewat kartu kredit, masuk anggaran saat tagihan kartu dibayar"><CreditCard aria-hidden size={12} /> Kartu kredit · tidak masuk anggaran</span> : null}
                   {(() => { const sp = splits.filter((x) => x.expense_id === e.id); return sp.length ? <span className="chip split-chip" title={sp.map((x) => `${x.name} ${rp(x.amount)}`).join(', ')}><Users aria-hidden size={12} /> Split bill · {sp.map((x) => `${x.name} ${rp(x.amount)}`).join(', ')}</span> : null })()}
+                  {(() => { const cb = cashbacks.filter((x) => x.expense_id === e.id).reduce((t, x) => t + x.amount, 0); return cb > 0 ? <span className="chip ok" title="Cashback masuk ke saldo e-wallet, tidak memengaruhi anggaran"><Sparkles aria-hidden size={12} /> Cashback + {rp(cb)}</span> : null })()}
                 </span>
                 <span className="amt">{rp(e.amount)}</span>
-                {!e.transfer_id && !pick ? <ExpenseEditor expense={e} cats={cats} pockets={pockets} /> : null}
+                {!e.transfer_id && !pick ? <ExpenseEditor expense={e} cats={cats} pockets={pockets} cashback={cashbacks.filter((x) => x.expense_id === e.id).reduce((t, x) => t + x.amount, 0)} /> : null}
                 {!e.transfer_id && !pick ? <ActionButton action={deleteExpense} args={[e.id]} label={`Hapus catatan ${e.note || rp(e.amount)}`} /> : null}
               </li>
             ))}
