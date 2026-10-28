@@ -44,3 +44,11 @@ Tiap pagi 08.00 WIB (Vercel Cron, `vercel.json`) bot mengirim kebutuhan yang wak
 - Opsional, catat pengeluaran lewat chat: setelah Chat ID terhubung, buka Pengaturan → Pengingat Telegram → *Aktifkan pencatatan lewat chat*. Rahasia webhook diturunkan otomatis dari token bot, tanpa variabel tambahan. Tulis misalnya `Makan siang 20 ribu` atau `Kopi 25k gopay kemarin`.
 4. Buka bot kamu di Telegram, tekan **Start**. Ambil Chat ID dari **@userinfobot**.
 5. Arus → Pengaturan → Pengingat Telegram → isi Chat ID → *Hubungkan dan kirim tes*.
+
+## Kantor Arus (opsional)
+
+Kantor 3D virtual (repo **kantor-ai**) yang karyawannya bereaksi pada data Arus. Isi `NEXT_PUBLIC_KANTOR_URL` dengan alamat web kantor di Vercel, lalu Redeploy.
+
+- Ringkasan akan menampilkan kartu kecil berisi status kantor (Aman, Waspada, atau Kritis) dan satu baris aktivitas karyawan.
+- Kartu ini hanya berisi teks. Kantor 3D baru dimuat setelah kartunya diketuk, jadi Arus di HP dan PWA tetap ringan.
+- Kartu bisa disembunyikan di **Pengaturan → Kantor Arus**. Pilihan ini tersimpan per perangkat.

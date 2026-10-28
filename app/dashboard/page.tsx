@@ -11,6 +11,9 @@ import { MoneyInput, QuickForm, Submit } from '@/components/Fields'
 import { DatePicker } from '@/components/DatePicker'
 import { PocketSelect } from '@/components/PocketSelect'
 import { SpendDonut, type Slice } from '@/components/SpendDonut'
+import { KantorCard } from '@/components/KantorCard'
+
+const KANTOR_URL = process.env.NEXT_PUBLIC_KANTOR_URL
 
 const pct = (n: number) => `${Math.round(n * 100)}%`
 
@@ -79,6 +82,25 @@ export default async function Beranda() {
     cur.amount += e.amount; cur.count += 1
     sliceMap.set(key, cur)
   }
+  // Kartu Kantor Arus: status dengan aturan yang sama seperti di web kantor-ai.
+  let kantor: { level: 'aman' | 'waspada' | 'kritis'; line: string } | null = null
+  if (KANTOR_URL && nowMonth) {
+    const own = data.expenses.filter((e) => !e.credit)
+    const spentToday = own.filter((e) => e.spent_on === ctx.today.iso).reduce((t, e) => t + e.amount, 0)
+    const safeToday = s.hariSisa > 0 ? Math.max(0, Math.floor((s.sisaJatah + spentToday) / s.hariSisa)) : 0
+    const hasPlan = s.masuk > 0
+    const late = unpaid.filter((r) => r.amount > 0 && r.dueDay < ctx.today.day)
+    const posHot = posList.filter((b) => b.amount > 0 && (s.spentByItem[b.id] ?? 0) / b.amount >= 0.8)
+    const minus = pockets.filter((p) => !isCreditKind(p.kind) && p.saldo < 0)
+    const level = (hasPlan && s.sisaJatah <= 0) || late.length ? 'kritis' : (hasPlan && spentToday > safeToday) || posHot.length || minus.length ? 'waspada' : 'aman'
+    const last = data.expenses[0]
+    const line = late.length ? `Irham sedang mengurus tagihan telat: ${late[0].bill.name}`
+      : minus.length ? `Aci panik: saldo ${minus[0].name} minus`
+      : posHot.length ? `Kartika melapor: pos ${posHot[0].label} sudah ${Math.round(((s.spentByItem[posHot[0].id] ?? 0) / posHot[0].amount) * 100)}%`
+      : last ? `Aci baru mencatat: ${last.note || data.budget.find((b) => b.id === last.budget_item_id)?.label || 'pengeluaran'} ${rp(last.amount)}`
+      : 'Tim sedang memantau keuanganmu'
+    kantor = { level, line }
+  }
   const slices = [...sliceMap.values()].filter((x) => x.amount > 0).sort((x, y) => (x.key === '__none' ? 1 : 0) - (y.key === '__none' ? 1 : 0) || y.amount - x.amount)
   const defDate = ctx.ym === ctx.today.ym ? ctx.today.iso : `${ctx.ym}-01`
 
@@ -86,6 +108,7 @@ export default async function Beranda() {
     <>
       <PageHead ctx={ctx} title={title} sub={`${ctx.nama} · ${ymLabel(ctx.ym)}`} />
       <div className="bento">
+        {kantor && KANTOR_URL ? <KantorCard url={KANTOR_URL} level={kantor.level} line={kantor.line} /> : null}
         {alerts.length ? (
           <section className="tile s12 alerts" style={{ ['--i' as string]: 0 }} aria-labelledby="h-alert">
             <div className="tile-head"><TileTitle id="h-alert" icon={BellRing}>Perlu perhatian</TileTitle><span className="tile-note">{alerts.length} hal</span></div>

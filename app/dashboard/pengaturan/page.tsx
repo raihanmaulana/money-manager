@@ -11,6 +11,8 @@ import { sheetsEnabled } from '@/lib/sheets'
 import { captureActive, telegramEnabled } from '@/lib/telegram'
 import { ActionButton, QuickForm, Submit } from '@/components/Fields'
 import { DebtMenuToggle } from '@/components/DebtMenuToggle'
+import { KantorToggle } from '@/components/KantorCard'
+import { Building2 } from 'lucide-react'
 
 export const metadata = { title: 'Pengaturan' }
 const DEMO_ON = process.env.DEMO_MODE === '1'
@@ -38,6 +40,13 @@ export default async function Pengaturan() {
           <div className="tile-head"><TileTitle id="h-sheet" icon={Sheet}>Google Sheet untuk audit</TileTitle></div>
           <SheetSync enabled={sheetsEnabled()} sheetUrl={process.env.NEXT_PUBLIC_SHEET_URL} />
         </section>
+        {process.env.NEXT_PUBLIC_KANTOR_URL ? (
+          <section className="tile s6" style={{ ['--i' as string]: 3 }} aria-labelledby="h-kantor">
+            <div className="tile-head"><TileTitle id="h-kantor" icon={Building2}>Kantor Arus</TileTitle></div>
+            <p className="hint" style={{ marginBottom: 'var(--space-3)' }}>Kartu kecil di Ringkasan yang menampilkan status kantor virtual. Kantor 3D baru dimuat saat kartunya diketuk. Pengaturan ini tersimpan di perangkat ini saja.</p>
+            <KantorToggle />
+          </section>
+        ) : null}
         <section className="tile s6" style={{ ['--i' as string]: 3 }} aria-labelledby="h-debt">
           <div className="tile-head"><TileTitle id="h-debt" icon={HandCoins}>Hutang Split Bill</TileTitle>{debtOn ? <span className="chip ok">Aktif</span> : null}</div>
           <p className="hint" style={{ marginBottom: 'var(--space-3)' }}>Buku hutang piutang dengan teman atau pasangan: siapa bayar apa, selisihnya, pelunasan, impor Excel, dan PDF untuk dikirim. Kalau diaktifkan, menunya muncul di sidebar.</p>
