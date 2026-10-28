@@ -1,4 +1,4 @@
-import { getCtx, loadMonth, loadPockets, loadSplits } from '@/lib/data'
+import { getCtx, loadDebtPaymentsMonth, loadMonth, loadPockets, loadSplits } from '@/lib/data'
 import { isCreditKind } from '@/lib/types'
 import { billRowsFor, rp, summarize, ymLabel } from '@/lib/calc'
 import { PageHead } from '@/components/PageHead'
@@ -11,7 +11,11 @@ const tgl = (iso: string) => `${Number(iso.slice(8))}/${iso.slice(5, 7)}`
 
 export default async function Laporan() {
   const ctx = await getCtx()
-  const [data, { pockets }, splits] = await Promise.all([loadMonth(ctx), loadPockets(ctx), loadSplits(ctx)])
+  const [data, { pockets }, splits, debtPays] = await Promise.all([loadMonth(ctx), loadPockets(ctx), loadSplits(ctx), loadDebtPaymentsMonth(ctx)])
+  const pk = (id: string | null) => pockets.find((p) => p.id === id)?.name
+  const dIn = debtPays.filter((d) => d.direction === 'them_to_me').reduce((t, d) => t + d.amount, 0)
+  const dOut = debtPays.filter((d) => d.direction === 'me_to_them').reduce((t, d) => t + d.amount, 0)
+  const dNet = debtPays.filter((d) => d.pocket_id).reduce((t, d) => t + (d.direction === 'them_to_me' ? d.amount : -d.amount), 0) // hanya yang punya sumber dana mengubah saldo
   const rows = billRowsFor(data.bills, data.billMonths, ctx.ym)
   const s = summarize(data.income, data.budget, data.expenses, rows, ctx.today, ctx.ym)
   const cats = data.budget.filter((b) => b.grp === 'kebutuhan' || b.grp === 'gaya_hidup')
@@ -120,6 +124,26 @@ export default async function Laporan() {
               </tbody>
               <tfoot><tr className="total"><td colSpan={3}>Total</td><td className="r">{rp(splits.reduce((t, x) => t + x.amount, 0))}</td></tr></tfoot>
             </table>
+          </section>
+        ) : null}
+
+        {debtPays.length ? (
+          <section className="rpt-sec">
+            <h2>Pelunasan hutang <small>informasi, tidak masuk anggaran</small></h2>
+            <table className="report-table">
+              <thead><tr><th>Dengan</th><th>Arah</th><th>Sumber dana</th><th className="r">Tgl</th><th className="r">Nominal</th></tr></thead>
+              <tbody>
+                {debtPays.map((d) => (
+                  <tr key={d.id}><td>{d.person}{d.note ? ` · ${d.note}` : ''}</td><td>{d.direction === 'them_to_me' ? 'Diterima' : 'Dibayar'}</td><td>{pk(d.pocket_id) ?? '—'}</td><td className="r">{tgl(d.paid_on)}</td><td className="r">{d.direction === 'them_to_me' ? '+ ' : '− '}{rp(d.amount)}</td></tr>
+                ))}
+              </tbody>
+              <tfoot>
+                {dIn ? <tr><td colSpan={4}>Diterima bulan ini</td><td className="r">+ {rp(dIn)}</td></tr> : null}
+                {dOut ? <tr><td colSpan={4}>Dibayar bulan ini</td><td className="r">− {rp(dOut)}</td></tr> : null}
+                <tr className="total"><td colSpan={4}>Pengaruh ke sumber dana</td><td className="r">{dNet < 0 ? '− ' : '+ '}{rp(Math.abs(dNet))}</td></tr>
+              </tfoot>
+            </table>
+            <p className="hint" style={{ marginTop: 'var(--space-2)' }}>Pelunasan mengubah saldo sumber dana, tetapi bukan pemasukan atau pengeluaran, jadi tidak memengaruhi uang belanja dan anggaran bulan ini.</p>
           </section>
         ) : null}
 

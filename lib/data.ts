@@ -273,3 +273,21 @@ export async function loadReconcile(ctx: Ctx, s: Statement, txns: StatementTxn[]
     return await reconcileStatement(sb, ctx.userId, s, txns)
   } catch { return null }
 }
+
+/** Pelunasan hutang split bill pada bulan yang dipilih (hanya informasi di laporan; tidak masuk anggaran). */
+export async function loadDebtPaymentsMonth(ctx: Ctx): Promise<{ id: string; person: string; direction: 'them_to_me' | 'me_to_them'; amount: number; paid_on: string; note: string; pocket_id: string | null }[]> {
+  const from = `${ctx.ym}-01`, to = `${ctx.ym}-31`
+  if (DEMO) {
+    const names = new Map(demo.demoDebtPeople.map((p) => [p.id, p.name]))
+    return demo.demoDebtPayments().filter((x) => x.paid_on >= from && x.paid_on <= to).map((x) => ({ id: x.id, person: names.get(x.person_id) ?? '—', direction: x.direction, amount: x.amount, paid_on: x.paid_on, note: x.note, pocket_id: x.pocket_id ?? null }))
+  }
+  try {
+    const sb = await supabaseServer()
+    const [pay, ppl] = await Promise.all([
+      sb.from('debt_payments').select('id,person_id,direction,amount,paid_on,note,pocket_id').eq('owner_id', ctx.userId).gte('paid_on', from).lte('paid_on', to).order('paid_on'),
+      sb.from('debt_people').select('id,name').eq('owner_id', ctx.userId),
+    ])
+    const names = new Map((ppl.data ?? []).map((p) => [p.id as string, p.name as string]))
+    return (pay.data ?? []).map((r) => ({ id: r.id as string, person: names.get(r.person_id as string) ?? '—', direction: r.direction as 'them_to_me' | 'me_to_them', amount: num(r.amount), paid_on: r.paid_on as string, note: (r.note as string) ?? '', pocket_id: (r.pocket_id as string) ?? null }))
+  } catch { return [] }
+}
