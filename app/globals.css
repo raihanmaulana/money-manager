@@ -788,3 +788,11 @@ a.debt-card:focus-visible { outline: 2px solid var(--page-ink, var(--color-accen
 .kantor-sheet .ks-bar b { font-family: var(--font-display); margin-right: auto; }
 .kantor-sheet iframe { flex: 1; width: 100%; border: 0; }
 @media (max-width: 560px) { .kantor-card .kc-go { display: none; } }
+
+/* Geser urutan catatan */
+.drag-handle { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 28px; height: 36px; margin-left: -6px; padding: 0; border: 0; background: transparent; color: var(--color-muted); border-radius: var(--radius-field); cursor: grab; touch-action: none; }
+.drag-handle:hover { color: var(--color-ink); background: var(--color-accent-soft); }
+.drag-handle:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 1px; }
+.rows > li.is-dragging { background: var(--color-surface); box-shadow: 0 8px 24px rgb(0 0 0 / 0.14); border-radius: var(--radius-field); opacity: 0.96; }
+.rows > li.is-dragging .drag-handle { cursor: grabbing; }
+@media print { .drag-handle { display: none !important; } }

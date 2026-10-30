@@ -20,7 +20,9 @@ export const demoBudget = (ym: string): BudgetItem[] => [
   { id: 'b10', ym, grp: 'investasi', label: 'Emas', amount: 200_000, sort: 2 },
 ]
 export const demoExpenses = (ym: string): Expense[] => [
-  { id: 'e1', ym, spent_on: `${ym}-01`, budget_item_id: 'b1', note: 'Makan siang kantor', pocket_id: 'p2', amount: 35_000 },
+  { id: 'e1', ym, spent_on: `${ym}-01`, spent_time: '12:10', budget_item_id: 'b1', note: 'Makan siang kantor', pocket_id: 'p2', amount: 35_000 },
+  { id: 'e6', ym, spent_on: `${ym}-01`, spent_time: '07:45', budget_item_id: 'b1', note: 'Sarapan bubur', pocket_id: 'p3', amount: 15_000 },
+  { id: 'e7', ym, spent_on: `${ym}-01`, spent_time: '19:30', budget_item_id: 'b2', note: 'Ojek pulang', pocket_id: 'p3', amount: 22_000 },
   { id: 'e2', ym, spent_on: `${ym}-02`, budget_item_id: 'b2', note: 'Ojek online', pocket_id: 'p3', amount: 25_000 },
   { id: 'e3', ym, spent_on: `${ym}-04`, budget_item_id: 'b4', note: 'Kopi sore', pocket_id: 'p3', amount: 28_000 },
   { id: 'e4', ym, spent_on: `${ym}-07`, budget_item_id: 'b5', note: 'Skincare', pocket_id: 'p2', amount: 120_000 },

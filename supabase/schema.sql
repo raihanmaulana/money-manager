@@ -406,3 +406,7 @@ create policy "pocket_cashbacks_owner" on public.pocket_cashbacks for all
 -- Cashback melekat pada transaksi penyebabnya (hapus transaksi = cashback ikut terhapus).
 alter table public.pocket_cashbacks add column if not exists expense_id uuid references public.expenses(id) on delete cascade;
 create index if not exists pocket_cashbacks_expense_idx on public.pocket_cashbacks(expense_id);
+
+-- Jam opsional dan urutan manual catatan (lihat tambah-urutan-catatan.sql)
+alter table public.expenses add column if not exists spent_time time;
+alter table public.expenses add column if not exists sort_pos int;

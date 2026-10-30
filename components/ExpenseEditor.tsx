@@ -56,6 +56,7 @@ export function ExpenseEditor({ expense, cats, pockets, cashback = 0 }: { expens
                   </select>
                 </label>
                 <label className="field"><span>Tanggal</span><DatePicker name="spent_on" label="Tanggal" defaultValue={expense.spent_on} inModal /></label>
+                <label className="field full"><span>Jam (opsional)</span><input className="input" type="time" name="spent_time" defaultValue={expense.spent_time ? expense.spent_time.slice(0, 5) : ''} style={{ maxWidth: '10rem' }} /></label>
                 <PocketCashbackFields pockets={pockets} defaultPocket={expense.pocket_id ?? ''} defaultCashback={cashback} />
                 <label className="field full"><span>Catatan</span><input className="input" name="note" maxLength={120} defaultValue={expense.note} /></label>
                 <SplitFields />

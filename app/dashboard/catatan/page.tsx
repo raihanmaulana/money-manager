@@ -53,6 +53,7 @@ export default async function Catatan() {
                     </select>
                   </label>
                   <label className="field"><span>Tanggal</span><DatePicker name="spent_on" label="Tanggal" lockable defaultValue={defDate} min={`${ctx.ym}-01`} max={`${ctx.ym}-${String(daysInMonth(ctx.ym)).padStart(2, '0')}`} /></label>
+                  <label className="field full"><span>Jam (opsional)</span><input className="input" type="time" name="spent_time" style={{ maxWidth: '10rem' }} /></label>
                   <PocketCashbackFields pockets={pockets} />
                   <label className="field full"><span>Catatan</span><input className="input" name="note" maxLength={120} placeholder="mis. kopi sore" /></label>
                   <SplitFields />

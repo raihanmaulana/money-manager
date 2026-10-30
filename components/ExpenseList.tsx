@@ -1,12 +1,15 @@
 'use client'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { ChevronDown, Filter, FilterX, Search, Users, CreditCard, ListChecks, Sparkles } from 'lucide-react'
+import { ChevronDown, Filter, FilterX, Search, Users, CreditCard, ListChecks, Sparkles, GripVertical } from 'lucide-react'
+import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
+import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
+import { sortDay, timeOf } from '@/lib/expense-order'
 import { ThemedSelect } from './ThemedSelect'
 import { ActionButton } from './Fields'
 import { ExpenseEditor } from './ExpenseEditor'
 import { RangeSlider } from './RangeSlider'
-import { deleteExpense, setExpensesPocket } from '@/lib/actions'
+import { deleteExpense, reorderExpenses, setExpensesPocket } from '@/lib/actions'
 import { useBusyTransition } from './Busy'
 import { useToast } from './Toast'
 import { rp } from '@/lib/calc'
@@ -14,6 +17,22 @@ import type { Cashback, Expense, Pocket, Split } from '@/lib/types'
 
 const tgl = (iso: string) => new Date(iso + 'T00:00:00Z').toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' })
 const NONE = '__none'
+
+/** Satu baris catatan yang bisa digeser (pegangan di kiri). Saat tidak bisa digeser, tampil seperti baris biasa. */
+function SortRow({ id, canDrag, label, className, children }: { id: string; canDrag: boolean; label: string; className?: string; children: (handle: React.ReactNode) => React.ReactNode }) {
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({ id, disabled: !canDrag })
+  const handle = canDrag ? (
+    <button type="button" className="drag-handle" ref={setActivatorNodeRef} {...attributes} {...listeners} aria-label={`Geser urutan ${label}`} title="Tahan dan geser untuk mengubah urutan">
+      <GripVertical aria-hidden size={16} />
+    </button>
+  ) : null
+  return (
+    <li ref={setNodeRef} className={`${className ?? ''}${isDragging ? ' is-dragging' : ''}`.trim() || undefined}
+      style={{ transform: transform ? `translate3d(0, ${Math.round(transform.y)}px, 0)` : undefined, transition, position: 'relative', zIndex: isDragging ? 5 : undefined }}>
+      {children(handle)}
+    </li>
+  )
+}
 
 /** Daftar catatan dengan filter tanggal, kategori, sumber dana, dan rentang nominal. */
 export function ExpenseList({ expenses, cats, pockets, days, splits = [], cashbacks = [] }: {
@@ -28,6 +47,10 @@ export function ExpenseList({ expenses, cats, pockets, days, splits = [], cashba
   const [dayLimit, setDayLimit] = useState(4)
   const [pick, setPick] = useState(false)
   const [sel, setSel] = useState<Set<string>>(new Set())
+  const [dir, setDir] = useState<'asc' | 'desc'>('asc')
+  const [override, setOverride] = useState<Record<string, string[]>>({})
+  const [, startReorder] = useBusyTransition(true)
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }))
   const [target, setTarget] = useState('')
   const [applying, startApply] = useBusyTransition(true)
   const toast = useToast()
@@ -59,8 +82,28 @@ export function ExpenseList({ expenses, cats, pockets, days, splits = [], cashba
 
   const byDay = new Map<string, Expense[]>()
   for (const e of shown) byDay.set(e.spent_on, [...(byDay.get(e.spent_on) ?? []), e])
+  // Urutan dalam sehari: pagi ke malam (bawaan), atau urutan hasil geser yang baru dilakukan
+  const orderedDay = (day: string, list: Expense[]) => {
+    const base = sortDay(list, dir)
+    const ov = override[day]
+    if (!ov || dir !== 'asc') return base
+    const rank = new Map(ov.map((id, i) => [id, i]))
+    return [...base].sort((a, b) => (rank.get(a.id) ?? 1e6) - (rank.get(b.id) ?? 1e6))
+  }
+  const canDrag = !active && !pick && dir === 'asc'
+  const onDragEnd = (day: string, ids: string[], ev: DragEndEvent) => {
+    const from = ids.indexOf(String(ev.active.id)), to = ev.over ? ids.indexOf(String(ev.over.id)) : -1
+    if (from < 0 || to < 0 || from === to) return
+    const next = arrayMove(ids, from, to)
+    setOverride((o) => ({ ...o, [day]: next }))
+    startReorder(async () => {
+      const r = await reorderExpenses(day, next)
+      if (typeof r === 'string') { setOverride((o) => { const n = { ...o }; delete n[day]; return n }); toast(r, 'warn') } else toast('Urutan tersimpan')
+    })
+  }
+  useEffect(() => { setOverride({}) }, [expenses])
   const total = shown.reduce((t, e) => t + (e.credit ? 0 : e.amount), 0)
-  const nActive = [dayR, amtR, cat, pocket].filter(Boolean).length
+  const nActive = [dayR, amtR, cat, pocket, dir === 'desc'].filter(Boolean).length
   const selectable = shown.filter((e) => !e.transfer_id)
   const toggle = (id: string) => setSel((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n })
   const stopPick = () => { setPick(false); setSel(new Set()); setTarget('') }
@@ -92,7 +135,7 @@ export function ExpenseList({ expenses, cats, pockets, days, splits = [], cashba
   }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { setDayLimit(4) }, [dayR, amtR, cat, pocket, q])
-  const reset = () => { setQ(''); setDayLimit(4); setDayR(null); setAmtR(null); setCat(''); setPocket('') }
+  const reset = () => { setQ(''); setDayLimit(4); setDayR(null); setAmtR(null); setCat(''); setPocket(''); setDir('asc') }
 
   return (
     <div className="stack" style={{ gap: 'var(--space-5)' }}>
@@ -105,7 +148,7 @@ export function ExpenseList({ expenses, cats, pockets, days, splits = [], cashba
           <Filter aria-hidden size={16} /> Filter{nActive ? <span className="filter-badge" aria-label={`${nActive} filter aktif`}>{nActive}</span> : null}
         </button>
         <span className="hint" aria-live="polite">{active ? `${shown.length} dari ${expenses.length} catatan · ${rp(total)}` : `${expenses.length} catatan · ${rp(total)}`}</span>
-        {active ? <button type="button" className="btn small ghost" onClick={reset}><FilterX aria-hidden size={16} /> Reset</button> : null}
+        {active || dir === 'desc' ? <button type="button" className="btn small ghost" onClick={reset}><FilterX aria-hidden size={16} /> Reset</button> : null}
         <button type="button" className={`btn small ghost${pick ? ' on' : ''}`} aria-pressed={pick} onClick={() => (pick ? stopPick() : setPick(true))}><ListChecks aria-hidden size={16} /> {pick ? 'Selesai memilih' : 'Pilih banyak'}</button>
       </div>
       {open ? createPortal(
@@ -118,6 +161,9 @@ export function ExpenseList({ expenses, cats, pockets, days, splits = [], cashba
               </div>
               <div className="field"><span>Sumber dana</span>
                 <ThemedSelect label="Sumber dana" value={pocket} onChange={setPocket} options={[{ value: '', label: 'Semua sumber' }, ...pockets.map((p) => ({ value: p.id, label: p.name })), { value: NONE, label: 'Belum dipilih' }]} />
+              </div>
+              <div className="field"><span>Urutan dalam sehari</span>
+                <ThemedSelect label="Urutan dalam sehari" value={dir} onChange={(v) => setDir(v === 'desc' ? 'desc' : 'asc')} options={[{ value: 'asc', label: 'Pagi ke malam (bawaan)' }, { value: 'desc', label: 'Malam ke pagi' }]} />
               </div>
               <div className="field f-range">
                 <span>Tanggal <b>{d[0] === d[1] ? `tgl ${d[0]}` : `tgl ${d[0]} – ${d[1]}`}</b></span>
@@ -135,7 +181,9 @@ export function ExpenseList({ expenses, cats, pockets, days, splits = [], cashba
           </div>
         </div>, document.body) : null}
 
-      {shown.length ? [...byDay.entries()].slice(0, dayLimit).map(([day, list]) => (
+      {canDrag && [...byDay.values()].some((l) => l.length > 1) ? <p className="hint no-print"><GripVertical aria-hidden size={14} /> Dalam sehari, urutan pagi ke malam. Isi jam saat mencatat agar otomatis tepat, atau tahan ikon di kiri lalu geser.</p> : null}
+
+      {shown.length ? [...byDay.entries()].slice(0, dayLimit).map(([day, raw]) => { const list = orderedDay(day, raw); const ids = list.map((x) => x.id); return (
         <section key={day} className="day" aria-label={tgl(day)}>
           <div className="day-sep">
             <span className="day-badge" aria-hidden><b>{Number(day.slice(8, 10))}</b><i>{new Date(day + 'T00:00:00Z').toLocaleDateString('id-ID', { weekday: 'short', timeZone: 'UTC' })}</i></span>
@@ -143,12 +191,15 @@ export function ExpenseList({ expenses, cats, pockets, days, splits = [], cashba
             <span className="day-line" aria-hidden />
             <span className="day-total">{rp(list.reduce((t, e) => t + (e.credit ? 0 : e.amount), 0))}</span>
           </div>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={(ev) => onDragEnd(day, ids, ev)}>
+          <SortableContext items={ids} strategy={verticalListSortingStrategy}>
           <ul className="rows">
             {list.map((e) => (
-              <li key={e.id} className={pick && sel.has(e.id) ? 'picked' : undefined}>
+              <SortRow key={e.id} id={e.id} canDrag={canDrag} label={e.note || rp(e.amount)} className={pick && sel.has(e.id) ? 'picked' : undefined}>{(handle) => (<>
+                {handle}
                 {pick ? (e.transfer_id ? <span className="pick-box" aria-hidden /> : <input type="checkbox" className="pick-box" checked={sel.has(e.id)} onChange={() => toggle(e.id)} aria-label={`Pilih catatan ${e.note || rp(e.amount)}`} />) : null}
                 <span className="grow"><span className="name">{e.note || label(e.budget_item_id) || 'Pengeluaran'}</span>
-                  {label(e.budget_item_id) || pk(e.pocket_id) || e.transfer_id || e.recurring_id ? <span className="meta">{[label(e.budget_item_id), pk(e.pocket_id), e.recurring_id ? 'Berulang' : '', e.transfer_id ? 'Otomatis dari Pindah dana (hapus lewat halaman Sumber dana)' : ''].filter(Boolean).join(' · ')}</span> : null}
+                  {timeOf(e) || label(e.budget_item_id) || pk(e.pocket_id) || e.transfer_id || e.recurring_id ? <span className="meta">{[timeOf(e), label(e.budget_item_id), pk(e.pocket_id), e.recurring_id ? 'Berulang' : '', e.transfer_id ? 'Otomatis dari Pindah dana (hapus lewat halaman Sumber dana)' : ''].filter(Boolean).join(' · ')}</span> : null}
                   {e.credit ? <span className="chip" title="Dibayar lewat kartu kredit, masuk anggaran saat tagihan kartu dibayar"><CreditCard aria-hidden size={12} /> Kartu kredit · tidak masuk anggaran</span> : null}
                   {(() => { const sp = splits.filter((x) => x.expense_id === e.id); return sp.length ? <span className="chip split-chip" title={sp.map((x) => `${x.name} ${rp(x.amount)}`).join(', ')}><Users aria-hidden size={12} /> Split bill · {sp.map((x) => `${x.name} ${rp(x.amount)}`).join(', ')}</span> : null })()}
                   {(() => { const cb = cashbacks.filter((x) => x.expense_id === e.id).reduce((t, x) => t + x.amount, 0); return cb > 0 ? <span className="chip ok" title="Cashback masuk ke saldo e-wallet, tidak memengaruhi anggaran"><Sparkles aria-hidden size={12} /> Cashback + {rp(cb)}</span> : null })()}
@@ -156,11 +207,13 @@ export function ExpenseList({ expenses, cats, pockets, days, splits = [], cashba
                 <span className="amt">{rp(e.amount)}</span>
                 {!e.transfer_id && !pick ? <ExpenseEditor expense={e} cats={cats} pockets={pockets} cashback={cashbacks.filter((x) => x.expense_id === e.id).reduce((t, x) => t + x.amount, 0)} /> : null}
                 {!e.transfer_id && !pick ? <ActionButton action={deleteExpense} args={[e.id]} label={`Hapus catatan ${e.note || rp(e.amount)}`} /> : null}
-              </li>
+              </>)}</SortRow>
             ))}
           </ul>
+          </SortableContext>
+          </DndContext>
         </section>
-      )) : <p className="hint">{expenses.length ? 'Tidak ada catatan yang cocok dengan filter ini.' : 'Belum ada catatan.'}</p>}
+      ) }) : <p className="hint">{expenses.length ? 'Tidak ada catatan yang cocok dengan filter ini.' : 'Belum ada catatan.'}</p>}
       {pick ? (
         <div className="sel-bar" role="region" aria-label="Ubah banyak catatan">
           <span className="sel-count"><b>{sel.size}</b> dipilih</span>

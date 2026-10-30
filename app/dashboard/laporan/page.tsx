@@ -1,6 +1,7 @@
 import { getCtx, loadCashbacks, loadDebtPaymentsMonth, loadMonth, loadPockets, loadSplits } from '@/lib/data'
 import { isCreditKind } from '@/lib/types'
 import { billRowsFor, rp, summarize, ymLabel } from '@/lib/calc'
+import { sortDay } from '@/lib/expense-order'
 import { PageHead } from '@/components/PageHead'
 import { PrintButton } from '@/components/PrintButton'
 
@@ -20,7 +21,7 @@ export default async function Laporan() {
   const s = summarize(data.income, data.budget, data.expenses, rows, ctx.today, ctx.ym)
   const cats = data.budget.filter((b) => b.grp === 'kebutuhan' || b.grp === 'gaya_hidup')
   const noCat = data.expenses.filter((e) => !e.budget_item_id).reduce((t, e) => t + e.amount, 0)
-  const exps = [...data.expenses].sort((a, b) => a.spent_on.localeCompare(b.spent_on))
+  const exps = (() => { const by = new Map<string, typeof data.expenses>(); for (const e of data.expenses) by.set(e.spent_on, [...(by.get(e.spent_on) ?? []), e]); return [...by.keys()].sort().flatMap((d) => sortDay(by.get(d)!)) })() // tanggal naik, dalam sehari pagi ke malam
 
   return (
     <>

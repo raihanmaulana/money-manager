@@ -248,9 +248,10 @@ export async function addExpense(formData: FormData): Promise<string | void> {
   }).select('id').single()
   if (row) await saveSplits(c, formData, row.id as string, spent_on, note)
   const cbErr = row ? await syncCashback(c, row.id as string, pocket_id, spent_on, formData.get('cashback')) : undefined
+  const tErr = row && validTime(formData.get('spent_time')) ? await saveTime(c, row.id as string, formData.get('spent_time')) : undefined
   if (row) await mirror(c, [{ table: 'expenses', id: row.id }], 'Tambah', 'Catatan', `${spent_on}: ${note || 'pengeluaran'} ${fmtRp(amount)}`, [spent_on.slice(0, 7)])
   done()
-  return cbErr || lowBalance(c, pocket_id)
+  return cbErr || tErr || lowBalance(c, pocket_id)
 }
 export async function updateExpense(formData: FormData): Promise<string | void> {
   const id = text(formData.get('id'), 40)
@@ -272,9 +273,10 @@ export async function updateExpense(formData: FormData): Promise<string | void> 
   await c.sb.from('expenses').update({ amount, spent_on, ym: spent_on.slice(0, 7), budget_item_id, pocket_id, note }).eq('id', id).eq('owner_id', c.uid)
   await saveSplits(c, formData, id, spent_on, note)
   const cbErr = await syncCashback(c, id, pocket_id, spent_on, formData.get('cashback'))
+  const tErr = await saveTime(c, id, formData.get('spent_time'), old.spent_on !== spent_on ? { sort_pos: null } : {})
   await mirror(c, [{ table: 'expenses', id }], 'Ubah', 'Catatan', `${old.spent_on}: ${old.note || 'pengeluaran'} ${fmtRp(Number(old.amount))} → ${spent_on}: ${note || 'pengeluaran'} ${fmtRp(amount)}`, [old.ym, spent_on.slice(0, 7)])
   done()
-  return cbErr
+  return cbErr || tErr
 }
 /** Ganti sumber dana sebuah pemasukan atau setoran tabungan (untuk membetulkan salah pilih). */
 export async function setRowPocket(table: 'income_items' | 'goal_deposits', id: string, _field: string, value: string) {
@@ -982,6 +984,32 @@ export async function disableTelegramCapture() {
   const c = await me()
   if (!c) return done()
   await tgCall('deleteWebhook', { drop_pending_updates: true })
+  done()
+}
+
+// ---------- Jam & urutan catatan ----------
+const NO_ORDER_COL = '⚠ Tersimpan, tapi jam/urutan belum bisa disimpan. Jalankan supabase/tambah-urutan-catatan.sql di SQL Editor Supabase dulu.'
+const validTime = (v: FormDataEntryValue | null) => { const t = text(v, 8); return /^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/.test(t) ? t.slice(0, 5) : '' }
+/** Jam opsional disimpan terpisah supaya pencatatan tetap berhasil walau kolomnya belum ada. */
+async function saveTime(c: C, id: string, raw: FormDataEntryValue | null, extra: Record<string, unknown> = {}): Promise<string | void> {
+  const t = validTime(raw)
+  const { error } = await c.sb.from('expenses').update({ ...extra, spent_time: t || null }).eq('id', id).eq('owner_id', c.uid)
+  // Kolom belum ada hanya jadi masalah bila ada jam atau urutan yang memang mau disimpan
+  if (error && (t || Object.keys(extra).length)) return NO_ORDER_COL
+}
+
+/** Simpan urutan manual catatan dalam satu hari (posisi 0, 1, 2, ...). */
+export async function reorderExpenses(day: string, ids: string[]): Promise<string | void> {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return
+  const list = [...new Set((Array.isArray(ids) ? ids : []).filter((x) => typeof x === 'string'))].slice(0, 200)
+  if (!list.length) return
+  const c = await me()
+  if (!c) return done()
+  const { data: rows } = await c.sb.from('expenses').select('id').in('id', list).eq('owner_id', c.uid).eq('spent_on', day)
+  const ok = new Set((rows ?? []).map((r) => r.id as string))
+  const res = await Promise.all(list.filter((id) => ok.has(id)).map((id) => c.sb.from('expenses').update({ sort_pos: list.indexOf(id) }).eq('id', id).eq('owner_id', c.uid)))
+  const bad = res.find((r) => r.error)
+  if (bad?.error) return /sort_pos|schema cache/i.test(bad.error.message) ? 'Urutan belum bisa disimpan. Jalankan supabase/tambah-urutan-catatan.sql di SQL Editor Supabase dulu.' : `Gagal menyimpan urutan: ${bad.error.message}`
   done()
 }
 
