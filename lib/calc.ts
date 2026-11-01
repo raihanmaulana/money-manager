@@ -212,6 +212,12 @@ export function goalPlan(goal: { name: string; is_emergency: boolean }, tabungan
   return planItems(goal, tabunganItems).reduce((t, i) => t + i.amount, 0)
 }
 
+/** Tanggal uang masuk/potongan jatuh: hari ke-`day` bulan `ym` (dibatasi akhir bulan). */
+export const payDate = (ym: string, day: number) => `${ym}-${String(Math.min(Math.max(1, Math.floor(day)), daysInMonth(ym))).padStart(2, '0')}`
+/** Apakah pemasukan sudah berlaku di saldo: bulan lalu ya; bulan ini baru setelah tanggalnya (tanpa tanggal = sejak awal bulan). */
+export const incomeCounts = (i: { ym: string; pay_day?: number | null }, today: { ym: string; iso: string }) =>
+  i.ym < today.ym || (i.ym === today.ym && (!i.pay_day || payDate(i.ym, i.pay_day) <= today.iso))
+
 /**
  * Saldo tiap sumber dana (sampai hari ini):
  * saldo awal + uang masuk − potongan − pengeluaran − setoran tabungan (tarik = menambah) + pindah masuk − pindah keluar (termasuk biaya admin).
@@ -219,7 +225,7 @@ export function goalPlan(goal: { name: string; is_emergency: boolean }, tabungan
  */
 export function pocketBalances(
   pockets: Pocket[],
-  income: { ym: string; kind: 'masuk' | 'potong'; amount: number; pocket_id?: string | null }[],
+  income: { ym: string; kind: 'masuk' | 'potong'; amount: number; pocket_id?: string | null; pay_day?: number | null }[],
   expenses: { spent_on: string; amount: number; pocket_id?: string | null }[],
   deposits: { ym: string; amount: number; pocket_id?: string | null }[],
   transfers: Transfer[],
@@ -233,7 +239,7 @@ export function pocketBalances(
   // Kartu kredit: saldo = −terpakai (opening_balance = terpakai awal)
   const bal = new Map<string, number>(pockets.map((p) => [p.id, isCreditKind(p.kind) ? -p.opening_balance : p.opening_balance]))
   const add = (id: string | null | undefined, n: number) => { if (id && bal.has(id)) bal.set(id, bal.get(id)! + n) }
-  for (const i of income) if (i.ym <= today.ym) add(i.pocket_id, i.kind === 'masuk' ? i.amount : -i.amount)
+  for (const i of income) if (incomeCounts(i, today)) add(i.pocket_id, i.kind === 'masuk' ? i.amount : -i.amount)
   const since = new Map(pockets.filter((p) => isCreditKind(p.kind) && p.credit_since).map((p) => [p.id, p.credit_since!]))
   const counts = (id: string | null | undefined, on: string) => !id || !since.has(id) || on >= since.get(id)!
   for (const e of expenses) if (e.spent_on <= today.iso && counts(e.pocket_id, e.spent_on)) add(e.pocket_id, -e.amount)

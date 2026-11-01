@@ -36,18 +36,26 @@ export async function addTemplateLine(fd: FormData): Promise<string | void> {
     const { data } = await c.sb.from('pockets').select('id').eq('id', pid).eq('owner_id', c.uid).maybeSingle()
     pocket_id = (data?.id as string) ?? null
   }
+  const pd = Math.floor(Number(String(fd.get('pay_day') ?? '').replace(/[^\d]/g, '')))
+  const payDay = pd >= 1 && pd <= 31 ? pd : null
   const { count } = await c.sb.from('month_template').select('id', { count: 'exact', head: true }).eq('owner_id', c.uid).eq('section', section)
   const { error } = await c.sb.from('month_template').insert({
     owner_id: c.uid, section, label, amount: money(fd.get('amount')), pocket_id, sort: count ?? 0,
     kind: section === 'income' ? (fd.get('kind') === 'potong' ? 'potong' : 'masuk') : null, grp: section === 'budget' ? grp : null,
+    ...(section === 'income' && payDay ? { pay_day: payDay } : {}),
   })
-  if (error) return missing(error) ? NO_TABLE : `Gagal menyimpan: ${error.message}`
+  if (error) return /pay_day/i.test(error.message) ? 'Tanggal masuk belum bisa disimpan. Jalankan supabase/tambah-tanggal-pemasukan.sql di SQL Editor Supabase dulu.' : missing(error) ? NO_TABLE : `Gagal menyimpan: ${error.message}`
   done()
 }
 
-export async function updateTemplateLine(id: string, field: 'label' | 'amount', value: string) {
+export async function updateTemplateLine(id: string, field: 'label' | 'amount' | 'pay_day', value: string) {
   const c = await me()
   if (!c) return done()
+  if (field === 'pay_day') {
+    const n = Math.floor(Number(String(value).replace(/[^\d]/g, '')))
+    await c.sb.from('month_template').update({ pay_day: n >= 1 && n <= 31 ? n : null }).eq('id', id).eq('owner_id', c.uid)
+    return done()
+  }
   const patch = field === 'label' ? { label: text(value) } : { amount: money(value) }
   if (field === 'label' && !patch.label) return
   await c.sb.from('month_template').update(patch).eq('id', id).eq('owner_id', c.uid)
@@ -67,11 +75,11 @@ export async function saveMonthAsTemplate(ym: string) {
   const c = await me()
   if (!c) return done()
   const [inc, bud] = await Promise.all([
-    c.sb.from('income_items').select('label,kind,amount,sort,pocket_id').eq('owner_id', c.uid).eq('ym', ym).order('sort'),
+    c.sb.from('income_items').select('*').eq('owner_id', c.uid).eq('ym', ym).order('sort'),
     c.sb.from('budget_items').select('grp,label,amount,sort').eq('owner_id', c.uid).eq('ym', ym).order('sort'),
   ])
   const rows = [
-    ...(inc.data ?? []).map((r, i) => ({ owner_id: c.uid, section: 'income', kind: r.kind, grp: null, label: r.label, amount: r.amount, pocket_id: r.pocket_id ?? null, sort: i })),
+    ...(inc.data ?? []).map((r, i) => ({ owner_id: c.uid, section: 'income', kind: r.kind, grp: null, label: r.label, amount: r.amount, pocket_id: r.pocket_id ?? null, sort: i, ...(r.pay_day ? { pay_day: r.pay_day } : {}) })),
     ...(bud.data ?? []).map((r, i) => ({ owner_id: c.uid, section: 'budget', kind: null, grp: r.grp, label: r.label, amount: r.amount, pocket_id: null, sort: i })),
   ]
   if (!rows.length) return

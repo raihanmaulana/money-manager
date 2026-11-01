@@ -2,7 +2,7 @@
 import type { NeedItem, NeedPurchase, BillPayment, Recurring, Split, Bill, BillMonth, BudgetItem, Expense, Goal, GoalDeposit, IncomeItem, Pocket, Transfer } from './types.ts'
 
 export const demoIncome = (ym: string): IncomeItem[] => [
-  { id: 'i1', ym, label: 'Gaji kotor', kind: 'masuk', amount: 6_500_000, sort: 0, pocket_id: 'p1' },
+  { id: 'i1', ym, label: 'Gaji kotor', kind: 'masuk', amount: 6_500_000, sort: 0, pocket_id: 'p1', pay_day: 25 },
   { id: 'i2', ym, label: 'Potongan PPh 21', kind: 'potong', amount: 65_000, sort: 1, pocket_id: 'p1' },
   { id: 'i3', ym, label: 'Potongan BPJS karyawan', kind: 'potong', amount: 195_000, sort: 2, pocket_id: 'p1' },
   { id: 'i4', ym, label: 'Uang bulanan dari orang tua', kind: 'masuk', amount: 1_500_000, sort: 3, pocket_id: 'p2' },

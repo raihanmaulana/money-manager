@@ -798,3 +798,4 @@ a.debt-card:focus-visible { outline: 2px solid var(--page-ink, var(--color-accen
 .rows > li.is-dragging { background: var(--color-surface); box-shadow: 0 8px 24px rgb(0 0 0 / 0.14); border-radius: var(--radius-field); opacity: 0.96; }
 .rows > li.is-dragging .drag-handle { cursor: grabbing; }
 @media print { .drag-handle { display: none !important; } }
+.input.center { text-align: center; }

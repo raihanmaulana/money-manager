@@ -1,6 +1,6 @@
 // Pengambilan gerakan uang sebuah sumber dana untuk rekonsiliasi. Dipakai halaman laporan dan aksi impor.
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { cardRestores } from './calc.ts'
+import { cardRestores, payDate } from './calc.ts'
 import { reconcile, type Movement, type RecResult, type RecTxn } from './reconcile.ts'
 import { isCreditKind } from './types.ts'
 
@@ -24,7 +24,7 @@ export async function pocketMovements(sb: SupabaseClient, owner: string, pocketI
     sb.from('pocket_transfers').select('id,moved_on,amount,fee,note').eq('owner_id', owner).eq('from_pocket', pocketId).gte('moved_on', from).lte('moved_on', to),
     sb.from('pocket_transfers').select('id,moved_on,amount,note').eq('owner_id', owner).eq('to_pocket', pocketId).gte('moved_on', from).lte('moved_on', to),
     sb.from('debt_payments').select('id,paid_on,amount,direction,note').eq('owner_id', owner).eq('pocket_id', pocketId).gte('paid_on', from).lte('paid_on', to),
-    sb.from('income_items').select('id,ym,kind,label,amount').eq('owner_id', owner).eq('pocket_id', pocketId).gte('ym', fromYm).lte('ym', toYm),
+    sb.from('income_items').select('*').eq('owner_id', owner).eq('pocket_id', pocketId).gte('ym', fromYm).lte('ym', toYm),
     sb.from('bills').select('id,kind,principal,card_pocket_id').eq('owner_id', owner).eq('card_pocket_id', pocketId),
     sb.from('pocket_cashbacks').select('id,received_on,amount,note').eq('owner_id', owner).eq('pocket_id', pocketId).gte('received_on', from).lte('received_on', to),
   ])
@@ -39,7 +39,7 @@ export async function pocketMovements(sb: SupabaseClient, owner: string, pocketI
   for (const r of trIn.data ?? []) out.push({ id: `${r.id}`, src: 'pindah', date: r.moved_on as string, ym: (r.moved_on as string).slice(0, 7), direction: 'in', amount: num(r.amount), label: (r.note as string) || 'Pindah dana masuk' })
   for (const r of dp.data ?? []) out.push({ id: r.id as string, src: 'hutang', date: r.paid_on as string, ym: (r.paid_on as string).slice(0, 7), direction: r.direction === 'them_to_me' ? 'in' : 'out', amount: num(r.amount), label: (r.note as string) || 'Pelunasan hutang' })
   for (const r of cb.data ?? []) out.push({ id: r.id as string, src: 'cashback', date: r.received_on as string, ym: (r.received_on as string).slice(0, 7), direction: 'in', amount: num(r.amount), label: (r.note as string) || 'Cashback' })
-  for (const r of inc.data ?? []) out.push({ id: r.id as string, src: 'pemasukan', date: null, ym: r.ym as string, direction: r.kind === 'masuk' ? 'in' : 'out', amount: num(r.amount), label: r.label as string })
+  for (const r of inc.data ?? []) out.push({ id: r.id as string, src: 'pemasukan', date: r.pay_day ? payDate(r.ym as string, Number(r.pay_day)) : null, ym: r.ym as string, direction: r.kind === 'masuk' ? 'in' : 'out', amount: num(r.amount), label: r.label as string })
   if ((cards.data ?? []).length) {
     const ids = (cards.data ?? []).map((b) => b.id as string)
     const { data: cp } = await sb.from('bill_payments').select('bill_id,ym,paid_on,amount').eq('owner_id', owner).in('bill_id', ids)

@@ -10,7 +10,7 @@ export async function queryPockets(sb: SupabaseClient, owner: string, today: { y
   const [p, t, inc, exp, dep, pay, adj, bl, dp, cb] = await Promise.all([
     sb.from('pockets').select('*').eq('owner_id', owner).order('sort').order('created_at'),
     sb.from('pocket_transfers').select('*').eq('owner_id', owner).order('moved_on', { ascending: false }).order('created_at', { ascending: false }),
-    sb.from('income_items').select('ym,kind,amount,pocket_id').eq('owner_id', owner).not('pocket_id', 'is', null),
+    sb.from('income_items').select('*').eq('owner_id', owner).not('pocket_id', 'is', null),
     sb.from('expenses').select('spent_on,amount,pocket_id').eq('owner_id', owner).not('pocket_id', 'is', null),
     sb.from('goal_deposits').select('ym,amount,pocket_id').eq('owner_id', owner).not('pocket_id', 'is', null),
     sb.from('bill_payments').select('paid_on,amount,pocket_id,bill_id,ym').eq('owner_id', owner),

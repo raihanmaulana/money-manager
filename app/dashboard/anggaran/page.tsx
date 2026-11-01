@@ -3,7 +3,7 @@ import { isCreditKind } from '@/lib/types'
 import Link from 'next/link'
 import { Banknote, Calculator, Home, PiggyBank, Plus, Sparkle, TrendingUp } from 'lucide-react'
 import { getCtx, loadMonth, loadPockets } from '@/lib/data'
-import { billRowsFor, rp, summarize, ymLabel } from '@/lib/calc'
+import { billRowsFor, incomeCounts, rp, summarize, ymLabel } from '@/lib/calc'
 import { addBudget, addIncome, setRowPocket, deleteBudget, deleteIncome, resetMonth, updateBudget, updateIncome } from '@/lib/actions'
 import { PageHead } from '@/components/PageHead'
 import { EmptyMonth } from '@/components/EmptyMonth'
@@ -49,8 +49,9 @@ export default async function Anggaran() {
             {data.income.map((i) => (
               <li key={i.id} className="row wrap">
                 <span className="grow" style={{ minWidth: '12rem' }}><InlineField id={i.id} field="label" value={i.label} action={updateIncome} label="Nama pemasukan" />
-                  <span className="meta" style={{ paddingLeft: 8 }}>{i.kind === 'masuk' ? 'Uang masuk' : 'Potongan'}</span>
+                  <span className="meta" style={{ paddingLeft: 8 }}>{i.kind === 'masuk' ? 'Uang masuk' : 'Potongan'}{i.pay_day ? ` · tgl ${i.pay_day}` : ''}{i.pocket_id && i.pay_day && !incomeCounts(i, ctx.today) ? ' · belum masuk' : ''}</span>
                   {pockets.length ? <PocketInline table="income_items" id={i.id} value={i.pocket_id} pockets={pockets.filter((p) => !isCreditKind(p.kind))} action={setRowPocket} /> : null}</span>
+                <span style={{ width: '6.2rem', flex: 'none', display: 'inline-flex', alignItems: 'center', gap: 2 }} title="Tanggal masuk (kosong = awal bulan)"><span className="meta" aria-hidden>Tgl</span><InlineField id={i.id} field="pay_day" value={i.pay_day ?? ''} action={updateIncome} label={`Tanggal masuk ${i.label}`} extra="center" /></span>
                 <span style={{ width: '10.5rem', flex: 'none' }}><InlineField id={i.id} field="amount" value={i.amount} money action={updateIncome} label={`Nominal ${i.label}`} /></span>
                 <ActionButton action={deleteIncome} args={[i.id]} label={`Hapus ${i.label}`} />
               </li>
@@ -62,7 +63,9 @@ export default async function Anggaran() {
               <label className="field"><span>Tambah</span><input className="input" name="label" placeholder="mis. Bonus" maxLength={80} required /></label>
               <label className="field"><span>Jenis</span><select className="select" name="kind"><option value="masuk">Uang masuk</option><option value="potong">Potongan</option></select></label>
               <label className="field"><span>Nominal</span><MoneyInput name="amount" label="Nominal" /></label>
+              <label className="field"><span>Tanggal (opsional)</span><input className="input" type="number" name="pay_day" min={1} max={31} placeholder="mis. 25" inputMode="numeric" /></label>
               <PocketSelect pockets={pockets.filter((p) => !isCreditKind(p.kind))} label="Masuk ke / dipotong dari" full />
+              <p className="hint full" style={{ margin: 0 }}>Dengan tanggal, saldo sumber dana baru bertambah setelah tanggal itu tiba. Anggaran bulan ini tetap menghitung penuh.</p>
               <div className="full"><Submit className="btn small ghost"><Plus aria-hidden /> Tambah</Submit></div>
             </QuickForm>
           )}

@@ -214,3 +214,14 @@ test('cashback e-wallet menambah saldo tanpa memengaruhi pemasukan', async () =>
   ])
   assert.equal(r[0].saldo, 104_500)
 })
+
+test('pemasukan bertanggal baru masuk saldo setelah tanggalnya', async () => {
+  const { incomeCounts, payDate } = await import('./calc.ts')
+  const today = { ym: '2026-11', iso: '2026-11-20' }
+  assert.equal(incomeCounts({ ym: '2026-11', pay_day: 25 }, today), false)
+  assert.equal(incomeCounts({ ym: '2026-11', pay_day: 20 }, today), true)
+  assert.equal(incomeCounts({ ym: '2026-11' }, today), true)
+  assert.equal(incomeCounts({ ym: '2026-10', pay_day: 31 }, today), true)
+  assert.equal(incomeCounts({ ym: '2026-12', pay_day: 1 }, today), false)
+  assert.equal(payDate('2026-02', 31), '2026-02-28')
+})

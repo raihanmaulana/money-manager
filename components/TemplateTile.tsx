@@ -26,7 +26,8 @@ export function TemplateTile({ lines, pockets, ym, ymText }: { lines: TemplateLi
         {income.map((l) => (
           <li key={l.id} className="row wrap">
             <span className="grow" style={{ minWidth: '12rem' }}><InlineField id={l.id} field="label" value={l.label} action={updateTemplateLine} label="Nama pemasukan" />
-              <span className="meta" style={{ paddingLeft: 8 }}>{l.kind === 'masuk' ? 'Uang masuk' : 'Potongan'}{pk(l.pocket_id) ? ` · ${pk(l.pocket_id)}` : ''}</span></span>
+              <span className="meta" style={{ paddingLeft: 8 }}>{l.kind === 'masuk' ? 'Uang masuk' : 'Potongan'}{l.pay_day ? ` · tgl ${l.pay_day}` : ''}{pk(l.pocket_id) ? ` · ${pk(l.pocket_id)}` : ''}</span></span>
+            <span style={{ width: '6.2rem', flex: 'none', display: 'inline-flex', alignItems: 'center', gap: 2 }} title="Tanggal masuk (kosong = awal bulan)"><span className="meta" aria-hidden>Tgl</span><InlineField id={l.id} field="pay_day" value={l.pay_day ?? ''} action={updateTemplateLine} label={`Tanggal masuk ${l.label}`} extra="center" /></span>
             <span style={{ width: '10.5rem', flex: 'none' }}><InlineField id={l.id} field="amount" value={l.amount} money action={updateTemplateLine} label={`Nominal ${l.label}`} /></span>
             <ActionButton action={deleteTemplateLine} args={[l.id]} label={`Hapus ${l.label} dari template`} />
           </li>
@@ -38,6 +39,7 @@ export function TemplateTile({ lines, pockets, ym, ymText }: { lines: TemplateLi
         <label className="field"><span>Tambah</span><input className="input" name="label" placeholder="mis. Gaji" maxLength={80} required /></label>
         <label className="field"><span>Jenis</span><select className="select" name="kind"><option value="masuk">Uang masuk</option><option value="potong">Potongan</option></select></label>
         <label className="field"><span>Nominal</span><MoneyInput name="amount" label="Nominal" /></label>
+        <label className="field"><span>Tanggal (opsional)</span><input className="input" type="number" name="pay_day" min={1} max={31} placeholder="mis. 25" inputMode="numeric" /></label>
         <PocketSelect pockets={wallets} label="Masuk ke / dipotong dari" full />
         <div className="full"><Submit className="btn small ghost"><Plus aria-hidden /> Tambah ke template</Submit></div>
       </QuickForm>

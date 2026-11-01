@@ -131,17 +131,17 @@ export async function seedMonth(formData: FormData) {
   if (mode === 'prev') {
     const prev = ymAdd(ym, -1)
     const [inc, bud] = await Promise.all([
-      sb.from('income_items').select('label,kind,amount,sort,pocket_id').eq('owner_id', uid).eq('ym', prev),
+      sb.from('income_items').select('*').eq('owner_id', uid).eq('ym', prev),
       sb.from('budget_items').select('grp,label,amount,sort').eq('owner_id', uid).eq('ym', prev),
     ])
-    if (inc.data?.length) await sb.from('income_items').insert(inc.data.map((r) => ({ ...r, owner_id: uid, ym })))
+    if (inc.data?.length) await sb.from('income_items').insert(inc.data.map((r) => ({ label: r.label, kind: r.kind, amount: r.amount, sort: r.sort, pocket_id: r.pocket_id, ...(r.pay_day ? { pay_day: r.pay_day } : {}), owner_id: uid, ym })))
     if (bud.data?.length) await sb.from('budget_items').insert(bud.data.map((r) => ({ ...r, owner_id: uid, ym })))
   } else {
     // Template buatan sendiri (Pengaturan) dipakai bila ada; kalau belum, rencana awal bawaan.
-    const { data: tpl } = await sb.from('month_template').select('section,kind,grp,label,amount,pocket_id,sort').eq('owner_id', uid).order('sort')
+    const { data: tpl } = await sb.from('month_template').select('*').eq('owner_id', uid).order('sort')
     const tInc = (tpl ?? []).filter((r) => r.section === 'income'), tBud = (tpl ?? []).filter((r) => r.section === 'budget')
     if (tInc.length) {
-      await sb.from('income_items').insert(tInc.map((r, i) => ({ owner_id: uid, ym, label: r.label, kind: r.kind ?? 'masuk', amount: r.amount, pocket_id: r.pocket_id, sort: i })))
+      await sb.from('income_items').insert(tInc.map((r, i) => ({ owner_id: uid, ym, label: r.label, kind: r.kind ?? 'masuk', amount: r.amount, pocket_id: r.pocket_id, sort: i, ...(r.pay_day ? { pay_day: r.pay_day } : {}) })))
       if (tBud.length) await sb.from('budget_items').insert(tBud.map((r, i) => ({ owner_id: uid, ym, grp: r.grp, label: r.label, amount: r.amount, sort: i })))
     } else {
       await sb.from('income_items').insert(DEFAULT_INCOME.map((r, i) => ({ ...r, owner_id: uid, ym, sort: i })))
@@ -162,7 +162,9 @@ export async function seedMonth(formData: FormData) {
 }
 
 // ---------- Pemasukan ----------
-export async function addIncome(formData: FormData) {
+/** Tanggal 1–31 dari isian; kosong/tak valid = null. */
+const payDayOf = (v: FormDataEntryValue | string | null | undefined) => { const n = Math.floor(Number(String(v ?? '').replace(/[^\d]/g, ''))); return n >= 1 && n <= 31 ? n : null }
+export async function addIncome(formData: FormData): Promise<string | void> {
   const ym = text(formData.get('ym'), 7)
   const label = text(formData.get('label'))
   const kind = formData.get('kind') === 'potong' ? 'potong' : 'masuk'
@@ -171,13 +173,19 @@ export async function addIncome(formData: FormData) {
   if (!c) return done()
   const amount = money(formData.get('amount'))
   const pocket_id = await pocketOf(c, formData.get('pocket_id'))
-  const { data: row } = await c.sb.from('income_items').insert({ owner_id: c.uid, ym, label, kind, amount, sort: 99, pocket_id }).select('id').single()
+  const pay_day = payDayOf(formData.get('pay_day'))
+  const { data: row, error } = await c.sb.from('income_items').insert({ owner_id: c.uid, ym, label, kind, amount, sort: 99, pocket_id, ...(pay_day ? { pay_day } : {}) }).select('id').single()
+  if (error) return /pay_day|schema cache/i.test(error.message) ? 'Tanggal masuk belum bisa disimpan. Jalankan supabase/tambah-tanggal-pemasukan.sql di SQL Editor Supabase dulu.' : `Gagal menyimpan: ${error.message}`
   if (row) await mirror(c, [{ table: 'income_items', id: row.id }], 'Tambah', 'Pemasukan', `${ymLabel(ym)}: ${label} ${fmtRp(amount)} (${kind === 'masuk' ? 'uang masuk' : 'potongan'})`, [ym])
   done()
 }
-export async function updateIncome(id: string, field: 'label' | 'amount', value: string) {
+export async function updateIncome(id: string, field: 'label' | 'amount' | 'pay_day', value: string) {
   const c = await me()
   if (!c) return done()
+  if (field === 'pay_day') {
+    await c.sb.from('income_items').update({ pay_day: payDayOf(value) }).eq('id', id).eq('owner_id', c.uid)
+    return done()
+  }
   const patch = field === 'label' ? { label: text(value) } : { amount: money(value) }
   if (field === 'label' && !patch.label) return
   const old = await prev(c, 'income_items', id)

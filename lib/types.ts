@@ -1,7 +1,7 @@
 export type Grp = 'kebutuhan' | 'gaya_hidup' | 'tabungan' | 'investasi'
 export type BillKind = 'tagihan' | 'cicilan' | 'hutang' | 'kartu' | 'paylater'
 
-export type IncomeItem = { id: string; ym: string; label: string; kind: 'masuk' | 'potong'; amount: number; sort: number; pocket_id?: string | null }
+export type IncomeItem = { id: string; ym: string; label: string; kind: 'masuk' | 'potong'; amount: number; sort: number; pocket_id?: string | null; pay_day?: number | null }
 export type BudgetItem = { id: string; ym: string; grp: Grp; label: string; amount: number; sort: number }
 export type Expense = { id: string; ym: string; spent_on: string; spent_time?: string | null; sort_pos?: number | null; created_at?: string; budget_item_id: string | null; note: string; amount: number; pocket_id?: string | null; transfer_id?: string | null; recurring_id?: string | null; credit?: boolean }
 export type Bill = { id: string; name: string; kind: BillKind; amount: number; due_day: number; start_ym: string; end_ym: string | null; note: string; min_payment?: number; card_pocket_id?: string | null; principal?: number }
@@ -53,7 +53,7 @@ export type Statement = {
 export type StatementTxn = { id: string; txn_on: string; kind: string; description: string; direction: 'in' | 'out'; amount: number; balance: number | null }
 
 /** Template bulan baru: pemasukan/potongan (income) atau kategori anggaran (budget). */
-export type TemplateLine = { id: string; section: 'income' | 'budget'; kind: 'masuk' | 'potong' | null; grp: Grp | null; label: string; amount: number; pocket_id: string | null; sort: number }
+export type TemplateLine = { id: string; section: 'income' | 'budget'; kind: 'masuk' | 'potong' | null; grp: Grp | null; label: string; amount: number; pocket_id: string | null; sort: number; pay_day?: number | null }
 
 /** Cashback e-wallet: menambah saldo sumber dana tanpa memengaruhi anggaran. */
 export type Cashback = { id: string; pocket_id: string; received_on: string; amount: number; note: string; expense_id?: string | null }
