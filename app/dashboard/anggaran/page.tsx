@@ -47,13 +47,15 @@ export default async function Anggaran() {
           <div className="tile-head"><TileTitle id="h-masuk" icon={Banknote}>Pemasukan</TileTitle><span className="tile-note">bersih {rp(s.bersih)}</span></div>
           <ul className="rows">
             {data.income.map((i) => (
-              <li key={i.id} className="row wrap">
-                <span className="grow" style={{ minWidth: '12rem' }}><InlineField id={i.id} field="label" value={i.label} action={updateIncome} label="Nama pemasukan" />
-                  <span className="meta" style={{ paddingLeft: 8 }}>{i.kind === 'masuk' ? 'Uang masuk' : 'Potongan'}{i.pay_day ? ` · tgl ${i.pay_day}` : ''}{i.pocket_id && i.pay_day && !incomeCounts(i, ctx.today) ? ' · belum masuk' : ''}</span>
+              <li key={i.id} className="inc-row">
+                <span className="inc-name"><InlineField id={i.id} field="label" value={i.label} action={updateIncome} label="Nama pemasukan" /></span>
+                <span className="inc-del"><ActionButton action={deleteIncome} args={[i.id]} label={`Hapus ${i.label}`} /></span>
+                <span className="inc-sub">
+                <span className="inc-day"><InlineField id={i.id} field="pay_day" value={i.pay_day ?? ''} action={updateIncome} label={`Tanggal masuk ${i.label} (kosong = awal bulan)`} placeholder="Tgl" extra="center boxed" /></span>
+                <span className="inc-amt"><InlineField id={i.id} field="amount" value={i.amount} money action={updateIncome} label={`Nominal ${i.label}`} /></span>
+                </span>
+                <span className="inc-meta"><span className="meta">{i.kind === 'masuk' ? 'Uang masuk' : 'Potongan'}{i.pay_day ? ` · tgl ${i.pay_day}` : ''}{i.pocket_id && i.pay_day && !incomeCounts(i, ctx.today) ? ' · belum masuk' : ''}</span>
                   {pockets.length ? <PocketInline table="income_items" id={i.id} value={i.pocket_id} pockets={pockets.filter((p) => !isCreditKind(p.kind))} action={setRowPocket} /> : null}</span>
-                <span style={{ width: '6.2rem', flex: 'none', display: 'inline-flex', alignItems: 'center', gap: 2 }} title="Tanggal masuk (kosong = awal bulan)"><span className="meta" aria-hidden>Tgl</span><InlineField id={i.id} field="pay_day" value={i.pay_day ?? ''} action={updateIncome} label={`Tanggal masuk ${i.label}`} extra="center" /></span>
-                <span style={{ width: '10.5rem', flex: 'none' }}><InlineField id={i.id} field="amount" value={i.amount} money action={updateIncome} label={`Nominal ${i.label}`} /></span>
-                <ActionButton action={deleteIncome} args={[i.id]} label={`Hapus ${i.label}`} />
               </li>
             ))}
           </ul>

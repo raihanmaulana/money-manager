@@ -25,9 +25,9 @@ export function MoneyInput({ name, defaultValue = 0, label, required, placeholde
 }
 
 /** Sel yang tersimpan saat dilepas fokus (blur) atau Enter. */
-export function InlineField({ id, field, value, action, money = false, disabled, label, extra, align }: {
+export function InlineField({ id, field, value, action, money = false, disabled, label, extra, align, placeholder }: {
   id: string; field: string; value: string | number; action: (id: string, field: any, value: string) => Promise<void>
-  money?: boolean; disabled?: boolean; label: string; extra?: string; align?: 'right'
+  money?: boolean; disabled?: boolean; label: string; extra?: string; align?: 'right'; placeholder?: string
 }) {
   const initial = money ? fmt(String(value)) : String(value)
   const [v, setV] = useState(initial)
@@ -40,7 +40,7 @@ export function InlineField({ id, field, value, action, money = false, disabled,
     start(async () => { await action(id, field, v); toast('Tersimpan') })
   }
   const input = (
-    <input className={`input bare ${money ? 'money' : ''} ${extra ?? ''}`} aria-label={label} value={v} disabled={disabled}
+    <input className={`input bare ${money ? 'money' : ''} ${extra ?? ''}`} aria-label={label} placeholder={placeholder} value={v} disabled={disabled}
       inputMode={money ? 'numeric' : undefined} aria-busy={pending}
       style={align ? { textAlign: align } : undefined}
       onChange={(e) => setV(money ? fmt(e.target.value) : e.target.value)}

@@ -24,12 +24,14 @@ export function TemplateTile({ lines, pockets, ym, ymText }: { lines: TemplateLi
       <h3 style={{ fontSize: "1rem", marginBottom: "var(--space-2)" }}>Pemasukan dan potongan</h3>
       <ul className="rows">
         {income.map((l) => (
-          <li key={l.id} className="row wrap">
-            <span className="grow" style={{ minWidth: '12rem' }}><InlineField id={l.id} field="label" value={l.label} action={updateTemplateLine} label="Nama pemasukan" />
-              <span className="meta" style={{ paddingLeft: 8 }}>{l.kind === 'masuk' ? 'Uang masuk' : 'Potongan'}{l.pay_day ? ` · tgl ${l.pay_day}` : ''}{pk(l.pocket_id) ? ` · ${pk(l.pocket_id)}` : ''}</span></span>
-            <span style={{ width: '6.2rem', flex: 'none', display: 'inline-flex', alignItems: 'center', gap: 2 }} title="Tanggal masuk (kosong = awal bulan)"><span className="meta" aria-hidden>Tgl</span><InlineField id={l.id} field="pay_day" value={l.pay_day ?? ''} action={updateTemplateLine} label={`Tanggal masuk ${l.label}`} extra="center" /></span>
-            <span style={{ width: '10.5rem', flex: 'none' }}><InlineField id={l.id} field="amount" value={l.amount} money action={updateTemplateLine} label={`Nominal ${l.label}`} /></span>
-            <ActionButton action={deleteTemplateLine} args={[l.id]} label={`Hapus ${l.label} dari template`} />
+          <li key={l.id} className="inc-row">
+            <span className="inc-name"><InlineField id={l.id} field="label" value={l.label} action={updateTemplateLine} label="Nama pemasukan" /></span>
+            <span className="inc-del"><ActionButton action={deleteTemplateLine} args={[l.id]} label={`Hapus ${l.label} dari template`} /></span>
+            <span className="inc-sub">
+            <span className="inc-day"><InlineField id={l.id} field="pay_day" value={l.pay_day ?? ''} action={updateTemplateLine} label={`Tanggal masuk ${l.label} (kosong = awal bulan)`} placeholder="Tgl" extra="center boxed" /></span>
+            <span className="inc-amt"><InlineField id={l.id} field="amount" value={l.amount} money action={updateTemplateLine} label={`Nominal ${l.label}`} /></span>
+            </span>
+            <span className="inc-meta"><span className="meta">{l.kind === 'masuk' ? 'Uang masuk' : 'Potongan'}{l.pay_day ? ` · tgl ${l.pay_day}` : ''}{pk(l.pocket_id) ? ` · ${pk(l.pocket_id)}` : ''}</span></span>
           </li>
         ))}
         {!income.length ? <li><span className="hint">Belum ada. Tambahkan gaji kamu di bawah.</span></li> : null}
