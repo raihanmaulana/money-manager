@@ -7,12 +7,13 @@ import { useToast } from './Toast'
 import { MoneyInput } from './Fields'
 import { SplitFields } from './SplitFields'
 import { PocketCashbackFields } from './PocketCashbackFields'
+import { CategorySelect } from './CategorySelect'
 import { DatePicker } from './DatePicker'
 import { updateExpense } from '@/lib/actions'
 import type { Expense, Pocket } from '@/lib/types'
 
 /** Tombol pensil + popup untuk mengubah catatan pengeluaran (jumlah, kategori, tanggal, sumber dana, catatan). */
-export function ExpenseEditor({ expense, cats, pockets, cashback = 0 }: { expense: Expense; cats: { id: string; label: string }[]; pockets: Pocket[]; cashback?: number }) {
+export function ExpenseEditor({ expense, cats, pockets, cashback = 0 }: { expense: Expense; cats: { id: string; label: string; grp?: string }[]; pockets: Pocket[]; cashback?: number }) {
   const [open, setOpen] = useState(false)
   const [pending, start] = useBusyTransition(true)
   const toast = useToast()
@@ -50,10 +51,7 @@ export function ExpenseEditor({ expense, cats, pockets, cashback = 0 }: { expens
               <div className="form-grid">
                 <label className="field full"><span>Berapa?</span><MoneyInput name="amount" label="Jumlah pengeluaran" defaultValue={expense.amount} required /></label>
                 <label className="field"><span>Kategori</span>
-                  <select className="select" name="budget_item_id" defaultValue={expense.budget_item_id ?? ''}>
-                    <option value="">Tanpa kategori</option>
-                    {cats.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
-                  </select>
+                  <CategorySelect name="budget_item_id" cats={cats} defaultValue={expense.budget_item_id ?? ''} />
                 </label>
                 <label className="field"><span>Tanggal</span><DatePicker name="spent_on" label="Tanggal" defaultValue={expense.spent_on} inModal /></label>
                 <label className="field full"><span>Jam (opsional)</span><input className="input" type="time" name="spent_time" defaultValue={expense.spent_time ? expense.spent_time.slice(0, 5) : ''} style={{ maxWidth: '10rem' }} /></label>

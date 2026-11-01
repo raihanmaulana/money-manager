@@ -36,7 +36,7 @@ function SortRow({ id, canDrag, label, className, children }: { id: string; canD
 
 /** Daftar catatan dengan filter tanggal, kategori, sumber dana, dan rentang nominal. */
 export function ExpenseList({ expenses, cats, pockets, days, splits = [], cashbacks = [] }: {
-  splits?: Split[]; cashbacks?: Cashback[]; expenses: Expense[]; cats: { id: string; label: string }[]; pockets: Pocket[]; days: number
+  splits?: Split[]; cashbacks?: Cashback[]; expenses: Expense[]; cats: { id: string; label: string; grp?: string }[]; pockets: Pocket[]; days: number
 }) {
   const [dayR, setDayR] = useState<[number, number] | null>(null)
   const [amtR, setAmtR] = useState<[number, number] | null>(null)
@@ -157,7 +157,7 @@ export function ExpenseList({ expenses, cats, pockets, days, splits = [], cashba
             <h2 id="flt-t"><Filter aria-hidden size={20} /> Filter catatan</h2>
             <div className="stack">
               <div className="field"><span>Kategori</span>
-                <ThemedSelect label="Kategori" value={cat} onChange={setCat} options={[{ value: '', label: 'Semua kategori' }, ...cats.map((c) => ({ value: c.id, label: c.label })), { value: NONE, label: 'Tanpa kategori' }]} />
+                <ThemedSelect label="Kategori" value={cat} onChange={setCat} options={[{ value: '', label: 'Semua kategori' }, ...cats.map((c) => ({ value: c.id, label: c.label, group: c.grp === 'kebutuhan' ? 'Kebutuhan pokok' : c.grp === 'gaya_hidup' ? 'Gaya hidup' : undefined })), { value: NONE, label: 'Tanpa kategori' }]} />
               </div>
               <div className="field"><span>Sumber dana</span>
                 <ThemedSelect label="Sumber dana" value={pocket} onChange={setPocket} options={[{ value: '', label: 'Semua sumber' }, ...pockets.map((p) => ({ value: p.id, label: p.name })), { value: NONE, label: 'Belum dipilih' }]} />

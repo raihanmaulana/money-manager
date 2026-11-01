@@ -394,6 +394,8 @@ ul.rows { margin: 0; padding: 0; }
 .ts-opt { display: flex; align-items: center; gap: var(--space-2); padding: 9px var(--space-3); border-radius: var(--radius-sm); cursor: pointer; font-size: var(--text-sm); }
 .ts-opt.is-active { background: var(--color-paper-2); }
 .ts-opt.is-on { color: var(--color-accent-deep); font-weight: 600; }
+.ts-group { padding: 8px var(--space-3) 4px; font-size: var(--text-xs); font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--color-muted); cursor: default; }
+.ts-group:not(:first-child) { margin-top: var(--space-1); border-top: var(--rule-w) solid var(--color-rule); padding-top: 10px; }
 
 /* ---------- donat ---------- */
 .donut-wrap { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-8); }

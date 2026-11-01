@@ -1,9 +1,9 @@
 'use client'
-import { useEffect, useId, useRef, useState } from 'react'
+import { Fragment, useEffect, useId, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Check, ChevronDown } from 'lucide-react'
 
-export type Opt = { value: string; label: string }
+export type Opt = { value: string; label: string; group?: string }
 
 /** Dropdown bertema pengganti <select>: panel di portal, bisa dipakai di dalam modal, lengkap dengan navigasi keyboard. */
 export function ThemedSelect({ value, options, onChange, label, placeholder }: { value: string; options: Opt[]; onChange: (v: string) => void; label: string; placeholder?: string }) {
@@ -21,7 +21,8 @@ export function ThemedSelect({ value, options, onChange, label, placeholder }: {
     const below = window.innerHeight - r.bottom - 12
     const above = r.top - 12
     const up = below < 180 && above > below
-    setBox({ left: r.left, width: r.width, max: Math.max(120, Math.min(280, up ? above : below)), ...(up ? { bottom: window.innerHeight - r.top + 6 } : { top: r.bottom + 6 }) })
+    const w = Math.max(r.width, Math.min(240, window.innerWidth - 24))
+    setBox({ left: Math.max(12, Math.min(r.left, window.innerWidth - w - 12)), width: w, max: Math.max(120, Math.min(280, up ? above : below)), ...(up ? { bottom: window.innerHeight - r.top + 6 } : { top: r.bottom + 6 }) })
   }
   const show = () => { setIdx(Math.max(0, options.findIndex((o) => o.value === value))); place(); setOpen(true) }
   const close = (focus = true) => { setOpen(false); if (focus) btn.current?.focus() }
@@ -60,10 +61,13 @@ export function ThemedSelect({ value, options, onChange, label, placeholder }: {
       {open && box ? createPortal(
         <ul id={id} ref={list} role="listbox" aria-label={label} className="ts-panel" style={{ left: box.left, width: box.width, top: box.top, bottom: box.bottom, maxHeight: box.max }}>
           {options.map((o, i) => (
-            <li key={o.value} role="option" data-i={i} aria-selected={o.value === value} className={`ts-opt${i === idx ? ' is-active' : ''}${o.value === value ? ' is-on' : ''}`}
+            <Fragment key={o.value}>
+            {o.group && o.group !== options[i - 1]?.group ? <li role="presentation" className="ts-group">{o.group}</li> : null}
+            <li role="option" data-i={i} aria-selected={o.value === value} className={`ts-opt${i === idx ? ' is-active' : ''}${o.value === value ? ' is-on' : ''}`}
               onMouseEnter={() => setIdx(i)} onMouseDown={(e) => e.preventDefault()} onClick={() => pick(o.value)}>
               <span className="grow">{o.label}</span>{o.value === value ? <Check aria-hidden size={16} /> : null}
             </li>
+            </Fragment>
           ))}
         </ul>, document.body) : null}
     </>

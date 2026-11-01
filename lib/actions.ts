@@ -222,6 +222,20 @@ export async function updateBudget(id: string, field: 'label' | 'amount', value:
   }
   done()
 }
+/** Simpan urutan kategori anggaran dalam satu kelompok (menentukan urutan di dropdown Catatan). */
+export async function reorderBudget(ids: string[]): Promise<string | void> {
+  const list = [...new Set((Array.isArray(ids) ? ids : []).filter((x) => typeof x === 'string'))].slice(0, 100)
+  if (!list.length) return
+  const c = await me()
+  if (!c) return done()
+  const { data: rows } = await c.sb.from('budget_items').select('id').in('id', list).eq('owner_id', c.uid)
+  const ok = new Set((rows ?? []).map((r) => r.id as string))
+  const res = await Promise.all(list.filter((id) => ok.has(id)).map((id) => c.sb.from('budget_items').update({ sort: list.indexOf(id) }).eq('id', id).eq('owner_id', c.uid)))
+  const bad = res.find((r) => r.error)
+  if (bad?.error) return `Gagal menyimpan urutan: ${bad.error.message}`
+  done()
+}
+
 export async function deleteBudget(id: string) {
   const c = await me()
   if (!c) return done()

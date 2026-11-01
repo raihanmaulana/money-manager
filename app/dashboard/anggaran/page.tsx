@@ -8,6 +8,7 @@ import { addBudget, addIncome, setRowPocket, deleteBudget, deleteIncome, resetMo
 import { PageHead } from '@/components/PageHead'
 import { EmptyMonth } from '@/components/EmptyMonth'
 import { ConfirmButton } from '@/components/ConfirmButton'
+import { BudgetRows } from '@/components/BudgetRows'
 import { PocketInline } from '@/components/PocketInline'
 import { PocketSelect } from '@/components/PocketSelect'
 import { ActionButton, InlineField, MoneyInput, QuickForm, Submit } from '@/components/Fields'
@@ -88,16 +89,7 @@ export default async function Anggaran() {
             <section key={g.grp} className="tile s6" style={{ ['--i' as string]: idx + 2 }} aria-labelledby={`h-${g.grp}`}>
               <div className="tile-head"><div><TileTitle id={`h-${g.grp}`} icon={GROUP_ICONS[g.grp]}>{g.title}</TileTitle><p className="tile-note">{g.note}</p></div>
                 <span className="chip">{rp(s.grp[g.grp])} · {pctOf(s.grp[g.grp])}</span></div>
-              <ul className="rows">
-                {items.map((b) => (
-                  <li key={b.id} className="row">
-                    <span className="grow"><InlineField id={b.id} field="label" value={b.label} action={updateBudget} label="Nama kategori" /></span>
-                    <span style={{ width: '10.5rem', flex: 'none' }}><InlineField id={b.id} field="amount" value={b.amount} money action={updateBudget} label={`Jatah ${b.label}`} /></span>
-                    <ActionButton action={deleteBudget} args={[b.id]} label={`Hapus kategori ${b.label}`} />
-                  </li>
-                ))}
-                {!items.length ? <li><span className="hint">Belum ada kategori.</span></li> : null}
-              </ul>
+              <BudgetRows items={items} />
               {(
                 <QuickForm action={addBudget} className="cluster" >
                   <input type="hidden" name="ym" value={ctx.ym} /><input type="hidden" name="grp" value={g.grp} />

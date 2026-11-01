@@ -11,6 +11,7 @@ import { DatePicker } from '@/components/DatePicker'
 import { ExpenseList } from '@/components/ExpenseList'
 import { ShowMore, Fold } from '@/components/ShowMore'
 import { SplitFields } from '@/components/SplitFields'
+import { CategorySelect } from '@/components/CategorySelect'
 import { PocketSelect } from '@/components/PocketSelect'
 import { PocketCashbackFields } from '@/components/PocketCashbackFields'
 import { ActionButton, InlineField, MoneyInput, QuickForm, Submit } from '@/components/Fields'
@@ -26,7 +27,7 @@ export default async function Catatan() {
   if (!data.income.length && !data.budget.length) {
     return (<><PageHead ctx={ctx} title="Catatan Pengeluaran" sub="Pengeluaran harian" /><div className="bento"><EmptyMonth ctx={ctx} /></div></>)
   }
-  const pos = data.budget.filter((b) => b.grp === 'kebutuhan' || b.grp === 'gaya_hidup')
+  const pos = data.budget.filter((b) => b.grp === 'kebutuhan' || b.grp === 'gaya_hidup').sort((a, b) => (a.grp === b.grp ? 0 : a.grp === 'kebutuhan' ? -1 : 1))
   const defDate = ctx.ym === ctx.today.ym ? ctx.today.iso : `${ctx.ym}-01`
   const noPos = data.expenses.filter((e) => !e.budget_item_id && !e.credit).reduce((t, e) => t + e.amount, 0)
 
@@ -47,10 +48,7 @@ export default async function Catatan() {
                 <div className="form-grid">
                   <label className="field full"><span>Berapa?</span><MoneyInput name="amount" label="Jumlah pengeluaran" required /></label>
                   <label className="field"><span>Kategori</span>
-                    <select className="select" name="budget_item_id" defaultValue="">
-                      <option value="">Tanpa kategori</option>
-                      {pos.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
-                    </select>
+                    <CategorySelect name="budget_item_id" cats={pos} />
                   </label>
                   <label className="field"><span>Tanggal</span><DatePicker name="spent_on" label="Tanggal" lockable defaultValue={defDate} min={`${ctx.ym}-01`} max={`${ctx.ym}-${String(daysInMonth(ctx.ym)).padStart(2, '0')}`} /></label>
                   <label className="field full"><span>Jam (opsional)</span><input className="input" type="time" name="spent_time" style={{ maxWidth: '10rem' }} /></label>
@@ -103,10 +101,7 @@ export default async function Catatan() {
                   <label className="field"><span>Nominal</span><MoneyInput name="amount" label="Nominal per bulan" required /></label>
                   <label className="field"><span>Tiap tanggal</span><input className="input" type="number" name="day" min={1} max={31} defaultValue={1} required /></label>
                   <label className="field"><span>Kategori</span>
-                    <select className="select" name="category_label" defaultValue="">
-                      <option value="">Tanpa kategori</option>
-                      {pos.map((p) => <option key={p.id} value={p.label}>{p.label}</option>)}
-                    </select>
+                    <CategorySelect name="category_label" cats={pos} by="label" />
                   </label>
                   <PocketSelect pockets={pockets} />
                   <label className="field"><span>Mulai bulan</span><input className="input" type="month" name="start_ym" defaultValue={ctx.ym} required /></label>
