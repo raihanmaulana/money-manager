@@ -69,6 +69,10 @@ async function lowBalance(c: C, pocketId: string | null | undefined): Promise<st
     if (p && p.saldo < 0) return `⚠ Tersimpan, tapi saldo ${p.name} sekarang minus ${fmtRp(-p.saldo)}. Cek apakah ada pemasukan atau pindah dana yang belum dicatat.`
   } catch { /* peringatan hanya bonus */ }
 }
+async function isCredit(c: C, id: string): Promise<boolean> {
+  const { data } = await c.sb.from('pockets').select('kind').eq('id', id).eq('owner_id', c.uid).maybeSingle()
+  return isCreditKind(data?.kind as string | undefined)
+}
 async function pocketOf(c: C, raw: FormDataEntryValue | null): Promise<string | null> {
   const id = text(raw, 40)
   if (!id) return null
@@ -660,6 +664,7 @@ export async function addTransfer(formData: FormData): Promise<string | void> {
   const to = await pocketOf(c, formData.get('to_pocket'))
   if (!from || !to) return 'Pilih sumber dana asal dan tujuan.'
   if (from === to) return 'Asal dan tujuan tidak boleh sama.'
+  if (await isCredit(c, to)) return 'Kartu kredit tidak bisa jadi tujuan. Bayar kartu lewat halaman Tagihan.'
   const { data: row, error } = await c.sb.from('pocket_transfers').insert({ owner_id: c.uid, from_pocket: from, to_pocket: to, amount, fee, moved_on, note: text(formData.get('note'), 80) }).select('id').single()
   if (error || !row) {
     console.error('[pindah dana] gagal simpan', error)
@@ -694,7 +699,7 @@ export async function updateTransfer(formData: FormData) {
   if (!old) return
   const from = await pocketOf(c, formData.get('from_pocket'))
   const to = await pocketOf(c, formData.get('to_pocket'))
-  if (!from || !to || from === to) return
+  if (!from || !to || from === to || await isCredit(c, to)) return
   await c.sb.from('pocket_transfers').update({ from_pocket: from, to_pocket: to, amount, fee, moved_on, note: text(formData.get('note'), 80) }).eq('id', id).eq('owner_id', c.uid)
   const names = await Promise.all([from, to].map(async (i) => ((await c.sb.from('pockets').select('name').eq('id', i).maybeSingle()).data?.name as string) ?? ''))
   // Catatan biaya admin otomatis ikut disesuaikan (ubah / buat / hapus).

@@ -5,12 +5,13 @@ import { Pencil } from 'lucide-react'
 import { useBusyTransition } from './Busy'
 import { useToast } from './Toast'
 import { MoneyInput } from './Fields'
+import { TransferFields } from './TransferFields'
 import { DatePicker } from './DatePicker'
 import { updateTransfer } from '@/lib/actions'
 import type { Pocket, Transfer } from '@/lib/types'
 
 /** Tombol pensil + popup untuk mengubah pindah dana (asal, tujuan, jumlah, biaya admin, tanggal, catatan). */
-export function TransferEditor({ transfer, pockets }: { transfer: Transfer; pockets: Pocket[] }) {
+export function TransferEditor({ transfer, from, to }: { transfer: Transfer; from: Pocket[]; to: Pocket[] }) {
   const [open, setOpen] = useState(false)
   const [pending, start] = useBusyTransition(true)
   const toast = useToast()
@@ -46,12 +47,7 @@ export function TransferEditor({ transfer, pockets }: { transfer: Transfer; pock
             <form action={save} className="stack edit-form">
               <input type="hidden" name="id" value={transfer.id} />
               <div className="form-grid">
-                <label className="field"><span>Dari</span>
-                  <select className="select" name="from_pocket" defaultValue={transfer.from_pocket} required>{pockets.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select>
-                </label>
-                <label className="field"><span>Ke</span>
-                  <select className="select" name="to_pocket" defaultValue={transfer.to_pocket} required>{pockets.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select>
-                </label>
+                <TransferFields from={from} to={to} defaultFrom={transfer.from_pocket} defaultTo={transfer.to_pocket} />
                 <label className="field"><span>Jumlah</span><MoneyInput name="amount" label="Jumlah dipindah" defaultValue={transfer.amount} required /></label>
                 <label className="field"><span>Tanggal</span><DatePicker name="moved_on" label="Tanggal" defaultValue={transfer.moved_on} inModal /></label>
                 <label className="field"><span>Biaya admin</span><MoneyInput name="fee" label="Biaya admin" defaultValue={transfer.fee ?? 0} /></label>

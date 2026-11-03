@@ -8,6 +8,7 @@ import { addPocket, addTransfer, deleteAdjustment, deletePocket, reconcilePocket
 import { PageHead } from '@/components/PageHead'
 import { ActionButton, InlineField, MoneyInput, QuickForm, Submit } from '@/components/Fields'
 import { DatePicker } from '@/components/DatePicker'
+import { TransferFields } from '@/components/TransferFields'
 import { TransferEditor } from '@/components/TransferEditor'
 import { ModalForm } from '@/components/ModalForm'
 import { ReconcileFields } from '@/components/ReconcileFields'
@@ -46,18 +47,13 @@ export default async function SumberDana() {
           </p>
         </section>
 
-        {real.length > 1 ? (
+        {real.length > 0 && pockets.length > 1 ? (
           <section className="tile s7" style={{ ['--i' as string]: i++ }} aria-labelledby="h-pindah">
             <div className="tile-head"><TileTitle id="h-pindah" icon={ArrowLeftRight}>Pindah dana</TileTitle></div>
-            <p className="hint" style={{ marginBottom: 'var(--space-3)' }}>Biaya admin ikut dikurangkan dari sumber asal dan otomatis tercatat sebagai pengeluaran di Catatan.</p>
+            <p className="hint" style={{ marginBottom: 'var(--space-3)' }}>Biaya admin ikut dikurangkan dari sumber asal dan otomatis tercatat sebagai pengeluaran di Catatan. Kartu kredit bisa jadi asal untuk tarik tunai / card to cash: limitnya berkurang sebesar jumlah + biaya admin.</p>
             <QuickForm action={addTransfer} className="stack">
               <div className="form-grid">
-                <label className="field"><span>Dari</span>
-                  <select className="select" name="from_pocket" defaultValue={real[0].id} required>{real.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select>
-                </label>
-                <label className="field"><span>Ke</span>
-                  <select className="select" name="to_pocket" defaultValue={real[1].id} required>{real.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select>
-                </label>
+                <TransferFields from={pockets} to={real} defaultFrom={real[0].id} defaultTo={(real[1] ?? real[0]).id} />
                 <label className="field"><span>Jumlah</span><MoneyInput name="amount" label="Jumlah dipindah" required /></label>
                 <label className="field"><span>Tanggal</span><DatePicker name="moved_on" label="Tanggal" defaultValue={ctx.today.iso} /></label>
                 <label className="field"><span>Biaya admin (opsional)</span><MoneyInput name="fee" label="Biaya admin" /></label>
@@ -157,7 +153,7 @@ export default async function SumberDana() {
                 <li key={t.id}>
                   <span className="grow"><span className="name">{name(t.from_pocket)} → {name(t.to_pocket)}{t.fee ? <span className="fee-tag">Fee: {rp(t.fee)}</span> : null}</span><span className="meta">{tgl(t.moved_on)}{t.note ? ` · ${t.note}` : ''}</span></span>
                   <span className="amt">{rp(t.amount)}</span>
-                  <TransferEditor transfer={t} pockets={real} />
+                  <TransferEditor transfer={t} from={pockets} to={real} />
                   <ActionButton action={deleteTransfer} args={[t.id]} label="Batalkan pindah dana ini" />
                 </li>
               ))}
