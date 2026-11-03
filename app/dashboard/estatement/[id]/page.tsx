@@ -37,7 +37,7 @@ export default async function LaporanStatement({ params }: { params: Promise<{ i
         <>
           <Link className="btn small ghost" href="/dashboard/estatement"><ArrowLeft aria-hidden size={16} /> Semua statement<LinkBusy /></Link>
           {s.file_path ? <StatementFileButton id={s.id} className="btn small ghost" /> : null}
-          <PrintButton />
+          <PrintButton name={`E-Statement ${s.pocket_name} ${s.period}`} />
         </>
       } />
       <article className="report">

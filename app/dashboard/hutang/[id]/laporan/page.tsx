@@ -37,7 +37,7 @@ export default async function LaporanHutang({ params }: { params: Promise<{ id: 
 
   return (
     <>
-      <PageHead ctx={ctx} title={`Laporan hutang ${person.name}`} month={false} actions={<PrintButton />} />
+      <PageHead ctx={ctx} title={`Laporan hutang ${person.name}`} month={false} actions={<PrintButton name={`Laporan hutang ${person.name}`} />} />
       <article className="report">
         <header className="rpt-head">
           <div>

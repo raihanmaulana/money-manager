@@ -25,7 +25,7 @@ export default async function Laporan() {
 
   return (
     <>
-      <PageHead ctx={ctx} title={`Laporan ${ymLabel(ctx.ym)}`} sub={`Data ${ctx.nama}`} actions={<PrintButton />} />
+      <PageHead ctx={ctx} title={`Laporan ${ymLabel(ctx.ym)}`} sub={`Data ${ctx.nama}`} actions={<PrintButton name={`Laporan Arus ${ctx.ym}`} />} />
       <article className="report">
         <header className="rpt-head">
           <div>

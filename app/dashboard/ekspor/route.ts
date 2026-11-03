@@ -29,6 +29,7 @@ export async function GET(req: Request) {
     }
   }
   const body = '﻿' + rows.map((r) => r.map(cell).join(';')).join('\r\n') + '\r\n'
-  const name = `${jenis}-${ctx.ym}.csv`
+  const made = new Date(Date.now() + 7 * 3600_000).toISOString().slice(0, 16).replace(/[-:]/g, '').replace('T', '-') // WIB, mis. 20261103-1816
+  const name = `${jenis}-${ctx.ym}-dibuat-${made}.csv`
   return new Response(body, { headers: { 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': `attachment; filename="${name}"`, 'Cache-Control': 'no-store' } })
 }
