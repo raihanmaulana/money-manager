@@ -9,6 +9,7 @@ import { PageHead } from '@/components/PageHead'
 import { ActionButton, InlineField, MoneyInput, QuickForm, Submit } from '@/components/Fields'
 import { DatePicker } from '@/components/DatePicker'
 import { TransferFields } from '@/components/TransferFields'
+import { AdjustmentEditor } from '@/components/AdjustmentEditor'
 import { TransferEditor } from '@/components/TransferEditor'
 import { ModalForm } from '@/components/ModalForm'
 import { ReconcileFields } from '@/components/ReconcileFields'
@@ -169,6 +170,7 @@ export default async function SumberDana() {
                 <li key={a.id}>
                   <span className="grow"><span className="name">{name(a.pocket_id)}</span><span className="meta">{tgl(a.adjusted_on)}{a.note ? ` · ${a.note}` : ''}</span></span>
                   <span className={a.amount < 0 ? 'amt minus' : 'amt'}>{a.amount < 0 ? '−' : '+'}{rp(Math.abs(a.amount))}</span>
+                  <AdjustmentEditor adjustment={a} pocketName={name(a.pocket_id) ?? ''} />
                   <ActionButton action={deleteAdjustment} args={[a.id]} label="Batalkan penyesuaian ini" />
                 </li>
               ))}

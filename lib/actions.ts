@@ -826,6 +826,25 @@ export async function reconcilePocket(formData: FormData): Promise<string | void
   await mirror(c, [], 'Samakan saldo', 'Sumber Dana', `${p.name}: ${fmtRp(p.saldo)} → ${fmtRp(actual)} (penyesuaian ${diff > 0 ? '+' : '−'}${fmtRp(Math.abs(diff))})`)
   done()
 }
+/** Ubah penyesuaian saldo: tanggal, arah (tambah/kurang), jumlah, catatan. Sumber dananya tetap. */
+export async function updateAdjustment(formData: FormData): Promise<string | void> {
+  const id = text(formData.get('id'), 40)
+  const adjusted_on = text(formData.get('adjusted_on'), 10)
+  const amount = money(formData.get('amount'))
+  if (!id) return
+  if (amount <= 0) return 'Isi jumlah penyesuaian.'
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(adjusted_on) || !isYm(adjusted_on.slice(0, 7))) return 'Tanggal belum dipilih.'
+  const c = await me()
+  if (!c) return done()
+  const { data: old } = await c.sb.from('pocket_adjustments').select('amount,pocket_id,adjusted_on').eq('id', id).eq('owner_id', c.uid).maybeSingle()
+  if (!old) return
+  const signed = formData.get('dir') === 'kurang' ? -amount : amount
+  const { error } = await c.sb.from('pocket_adjustments').update({ amount: signed, adjusted_on, note: text(formData.get('note'), 80) }).eq('id', id).eq('owner_id', c.uid)
+  if (error) return `Gagal menyimpan: ${error.message}`
+  const p = (await c.sb.from('pockets').select('name').eq('id', old.pocket_id).maybeSingle()).data
+  await mirror(c, [], 'Ubah penyesuaian', 'Sumber Dana', `${p?.name ?? ''}: ${old.adjusted_on} ${fmtRp(Number(old.amount))} → ${adjusted_on} ${signed < 0 ? '−' : '+'}${fmtRp(amount)}`)
+  done()
+}
 export async function deleteAdjustment(id: string) {
   const c = await me()
   if (!c) return done()
